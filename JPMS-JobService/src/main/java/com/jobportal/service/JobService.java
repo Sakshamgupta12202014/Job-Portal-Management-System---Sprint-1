@@ -8,6 +8,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.jobportal.Exceptions.ForbiddenException;
+import com.jobportal.Exceptions.InvalidJobTypeException;
+import com.jobportal.Exceptions.ResourceNotFoundException;
 import com.jobportal.dto.JobRequestDTO;
 import com.jobportal.dto.JobResponseDTO;
 import com.jobportal.dto.PagedResponse;
@@ -29,7 +32,7 @@ public class JobService {
 
         // Only RECRUITER can post jobs
         if (!userRole.equals("RECRUITER")) {
-            throw new RuntimeException("Only recruiters can post jobs");
+        	throw new ForbiddenException("Only recruiters can post jobs");
         }
 
         Job job = convertToEntity(dto);
@@ -59,7 +62,8 @@ public class JobService {
     public JobResponseDTO getJobById(Long id) {
 
         Job job = jobRepository.findByIdAndStatusNot(id, JobStatus.DELETED)
-                .orElseThrow(() -> new RuntimeException("Job not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Job not found with id: " + id));
 
         return convertToResponseDTO(job);
     }
@@ -79,8 +83,9 @@ public class JobService {
             try {
                 jobTypeEnum = JobType.valueOf(jobType.toUpperCase());
             } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid job type: " + jobType +
-                        ". Valid values are: FULL_TIME, PART_TIME, REMOTE, CONTRACT");
+            	 throw new InvalidJobTypeException(
+                         "Invalid job type: " + jobType +
+                         ". Valid values are: FULL_TIME, PART_TIME, REMOTE, CONTRACT");
             }
         }
         
@@ -99,15 +104,16 @@ public class JobService {
 
         // Only RECRUITER role allowed
         if (!currentUserRole.equals("RECRUITER")) {
-            throw new RuntimeException("Only recruiters can update jobs");
+        	throw new ForbiddenException("Only recruiters can update jobs");
         }
 
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Job not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Job not found with id: " + id));
 
         // Ownership check — recruiter must own this job
         if (!job.getPostedBy().equals(currentUserId)) {
-            throw new RuntimeException("You can only update your own jobs");
+        	throw new ForbiddenException("You can only update your own jobs");
         }
 
         job.setTitle(dto.getTitle());
@@ -132,15 +138,16 @@ public class JobService {
 
         // Only RECRUITER role allowed
         if (!currentUserRole.equals("RECRUITER")) {
-            throw new RuntimeException("Only recruiters can delete jobs");
+        	throw new ForbiddenException("Only recruiters can delete jobs");
         }
 
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Job not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Job not found with id: " + id));
 
         // Ownership check — recruiter must own this job
         if (!job.getPostedBy().equals(currentUserId)) {
-            throw new RuntimeException("You can only delete your own jobs");
+        	throw new ForbiddenException("You can only delete your own jobs");
         }
 
         // Soft delete — never physically remove from DB
@@ -157,7 +164,7 @@ public class JobService {
 
         // Only RECRUITER can see their own jobs
         if (!userRole.equals("RECRUITER")) {
-            throw new RuntimeException("Only recruiters can access this endpoint");
+        	throw new ForbiddenException("Only recruiters can access this endpoint");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
