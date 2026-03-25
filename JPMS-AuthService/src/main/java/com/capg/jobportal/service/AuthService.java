@@ -3,6 +3,7 @@ package com.capg.jobportal.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -195,6 +196,15 @@ public class AuthService {
 	        user.setRefreshToken(null);
 	        userRepository.save(user);
 	    }
+	}
+	
+	// New method to get emails of all active job seekers
+	public List<String> getJobSeekerEmails() {
+	    return userRepository.findByRole(Role.JOB_SEEKER)
+	            .stream()
+	            .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+	            .map(User::getEmail)
+	            .collect(Collectors.toList());
 	}
 	
 }

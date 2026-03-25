@@ -4,7 +4,9 @@ package com.capg.jobportal.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,10 +22,20 @@ import com.capg.jobportal.dto.PagedResponse;
 import com.capg.jobportal.entity.Job;
 import com.capg.jobportal.enums.JobStatus;
 import com.capg.jobportal.enums.JobType;
+import com.capg.jobportal.event.JobPostedEvent;
 import com.capg.jobportal.repository.JobRepository;
 
 @Service
 public class JobService {
+	
+	@Autowired
+	private RabbitTemplate rabbitTemplate;
+
+	@Value("${rabbitmq.exchange}")
+	private String exchange;
+
+	@Value("${rabbitmq.routing-key}")
+	private String routingKey;
 
     @Autowired
     private JobRepository jobRepository;
@@ -33,9 +45,8 @@ public class JobService {
     // -----------------------------------------------
     public JobResponseDTO postJob(JobRequestDTO dto, Long postedBy, String userRole) {
 
-        // Only RECRUITER can post jobs
         if (!userRole.equals("RECRUITER")) {
-        	throw new ForbiddenException("Only recruiters can post jobs");
+            throw new ForbiddenException("Only recruiters can post jobs");
         }
 
         Job job = convertToEntity(dto);
@@ -43,6 +54,20 @@ public class JobService {
         job.setStatus(JobStatus.ACTIVE);
 
         Job saved = jobRepository.save(job);
+
+        // Publish event to RabbitMQ after job is saved
+        JobPostedEvent event = new JobPostedEvent(
+                saved.getId(),
+                saved.getTitle(),
+                saved.getCompanyName(),
+                saved.getLocation(),
+                saved.getJobType().name(),
+                saved.getSalary(),
+                saved.getExperienceYears(),
+                saved.getDescription()
+        );
+        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+
         return convertToResponseDTO(saved);
     }
 

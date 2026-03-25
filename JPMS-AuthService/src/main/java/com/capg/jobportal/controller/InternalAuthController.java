@@ -24,6 +24,12 @@ public class InternalAuthController {
     public InternalAuthController(AuthService authService) {
         this.authService = authService;
     }
+    
+    @GetMapping("/users/job-seeker-emails")
+    public ResponseEntity<List<String>> getJobSeekerEmails() {
+        List<String> emails = authService.getJobSeekerEmails();
+        return new ResponseEntity<>(emails, HttpStatus.OK);
+    }
 
     @GetMapping("/users")
     public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
