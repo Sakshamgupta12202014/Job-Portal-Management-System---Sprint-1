@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.capg.jobportal.dto.UserInfoResponse;
 import com.capg.jobportal.dto.UserProfileResponse;
 import com.capg.jobportal.service.AuthService;
 
@@ -23,6 +24,16 @@ public class InternalAuthController {
 
     public InternalAuthController(AuthService authService) {
         this.authService = authService;
+    }
+    
+    @GetMapping("/users/{id}/info")
+    public ResponseEntity<UserInfoResponse> getUserInfo(@PathVariable Long id) {
+        UserProfileResponse profile = authService.getProfile(id);
+        UserInfoResponse info = new UserInfoResponse();
+        info.setId(profile.getId());
+        info.setName(profile.getName());
+        info.setEmail(profile.getEmail());
+        return ResponseEntity.ok(info);
     }
     
     @GetMapping("/users/job-seeker-emails")

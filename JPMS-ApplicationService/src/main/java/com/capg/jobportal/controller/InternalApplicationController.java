@@ -24,4 +24,6 @@ public class InternalApplicationController {
         ApplicationStats stats = applicationService.getApplicationStats();
         return new ResponseEntity<>(stats, HttpStatus.OK);
     }
+    
+    
 }

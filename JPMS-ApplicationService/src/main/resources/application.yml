@@ -27,7 +27,6 @@ spring:
 
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
 eureka:
@@ -47,3 +46,14 @@ management:
     web:
       exposure:
         include: health, info
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+rabbitmq:
+  exchange: jobportal.exchange
+  queue: job.applied.queue
+  routing-key: job.applied
