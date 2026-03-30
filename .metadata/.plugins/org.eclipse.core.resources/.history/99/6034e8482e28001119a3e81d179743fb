@@ -1,0 +1,5 @@
+package com.capg.jobportal.config;
+
+public class RabbitMQConfig {
+
+}

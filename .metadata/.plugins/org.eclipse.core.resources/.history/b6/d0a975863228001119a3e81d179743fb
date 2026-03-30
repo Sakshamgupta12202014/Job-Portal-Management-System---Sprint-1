@@ -1,0 +1,5 @@
+package com.capg.jobportal.dto;
+
+public class UserInfoResponse {
+
+}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename package &apos;com.capg.springboot&apos; to &apos;com.capg.jobportal.test&apos;&#x0D;&#x0A;- Original project: &apos;JPMS-EurekaServer&apos;&#x0D;&#x0A;- Original element: &apos;JPMS-EurekaServer/src/test/java/com.capg.springboot&apos;&#x0D;&#x0A;- Renamed element: &apos;JPMS-EurekaServer/src/test/java/com.capg.jobportal.test&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename package &apos;com.capg.springboot&apos;" flags="589830" hierarchical="false" id="org.eclipse.jdt.ui.rename.package" input="/src\/test\/java=/optional=/true=/=/maven.pomderived=/true=/=/test=/true=/&lt;com.capg.springboot" name="com.capg.jobportal.test" qualified="false" references="true" stamp="1774464684107" textual="false" version="1.0"/>
+</session>

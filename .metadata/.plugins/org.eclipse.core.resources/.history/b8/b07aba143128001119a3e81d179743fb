@@ -1,0 +1,14 @@
+package com.capg.jobportal.dto;
+
+public class Snippet {
+	@GetMapping("/users/{id}/info")
+	public ResponseEntity<UserInfoResponse> getUserInfo(@PathVariable Long id) {
+	    UserProfileResponse profile = authService.getUserProfile(id);
+	    UserInfoResponse info = new UserInfoResponse();
+	    info.setId(profile.getId());
+	    info.setName(profile.getName());
+	    info.setEmail(profile.getEmail());
+	    return ResponseEntity.ok(info);
+	}
+}
+

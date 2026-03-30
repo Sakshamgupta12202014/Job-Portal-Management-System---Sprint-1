@@ -1,0 +1,5 @@
+package com.capg.jobportal.client;
+
+public class AuthServiceClient {
+
+}

@@ -12,5 +12,4 @@ public class JpmsAuthServiceApplication {
 		SpringApplication.run(JpmsAuthServiceApplication.class, args);
 		System.out.println("JPMS-AuthService is running on port 8081...");
 	}
-
 }

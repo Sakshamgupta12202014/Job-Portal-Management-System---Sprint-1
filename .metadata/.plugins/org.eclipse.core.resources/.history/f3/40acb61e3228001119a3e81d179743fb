@@ -1,0 +1,13 @@
+package com.capg.jobportal.client;
+
+import java.util.List;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@FeignClient(name = "auth-service", url = "${auth.service.url}")
+public interface AuthServiceClient {
+
+    @GetMapping("/api/internal/users/job-seeker-emails")
+    List<String> getJobSeekerEmails();
+}

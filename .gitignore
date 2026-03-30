@@ -1,5 +1,118 @@
-.metadata/
-*.log
+# ===============================
+
+# MAVEN / BUILD FILES
+
+# ===============================
+
 target/
-bin/
+*.log
+*.class
+*.jar
+*.war
+*.ear
+
+# ===============================
+
+# SPRING BOOT
+
+# ===============================
+
+*.log
+logs/
+spring.log
+
+# ===============================
+
+# IDE FILES
+
+# ===============================
+
+# IntelliJ
+
+.idea/
+*.iml
+*.iws
+
+# Eclipse
+
+.project
+.classpath
+.settings/
+
+# VS Code
+
+.vscode/
+
+# ===============================
+
+# OS FILES
+
+# ===============================
+
+.DS_Store
+Thumbs.db
+
+# ===============================
+
+# ENV / SECRETS (IMPORTANT)
+
+# ===============================
+
+.env
+.env.*
+application-local.yml
+application-dev.yml
+
+# ===============================
+
+# DOCKER
+
+# ===============================
+
+docker-compose.override.yml
+*.pid
+
+# ===============================
+
+# NODE (if frontend later added)
+
+# ===============================
+
 node_modules/
+
+# ===============================
+
+# TEST / COVERAGE
+
+# ===============================
+
+coverage/
+*.exec
+
+# ===============================
+
+# TEMP FILES
+
+# ===============================
+
+*.tmp
+*.swp
+*~
+
+# ===============================
+
+# LOGGING / DEBUG
+
+# ===============================
+
+hs_err_pid*
+replay_pid*
+
+# ===============================
+
+# DATABASE FILES (if any local DB)
+
+# ===============================
+
+*.db
+*.sqlite

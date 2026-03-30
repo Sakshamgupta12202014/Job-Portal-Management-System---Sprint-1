@@ -1,0 +1,5 @@
+package com.capg.jobportal.listener;
+
+public class JobPostedListener {
+
+}
