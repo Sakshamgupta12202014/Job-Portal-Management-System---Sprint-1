@@ -4,4 +4,5 @@
     <fullyQualifiedTypeName name="java.util.List"/>
     <fullyQualifiedTypeName name="org.springframework.amqp.core.Binding"/>
     <fullyQualifiedTypeName name="org.springframework.amqp.core.Queue"/>
+    <fullyQualifiedTypeName name="com.rabbitmq.client.ConnectionFactory"/>
 </qualifiedTypeNameHistroy>

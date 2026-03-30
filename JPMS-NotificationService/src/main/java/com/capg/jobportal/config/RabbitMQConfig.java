@@ -66,4 +66,6 @@ public class RabbitMQConfig {
                 .to(jobPortalExchange)
                 .with(appliedRoutingKey);
     }
+    
+    
 }

@@ -158,8 +158,8 @@ spring:
 
 rabbitmq:
   exchange: jobportal.exchange
-  queue: job.applied.queue
-  routing-key: job.applied
+  queue: job.posted.queue
+  routing-key: job.posted
 
 eureka:
   client:
