@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.Collections;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +111,39 @@ class JobControllerTest {
                 .header("X-User-Role", "RECRUITER")
                 .param("page", "0")
                 .param("size", "10"))
+                .andExpect(status().isOk());
+    }
+    @Test
+    void updateJob_returns200() throws Exception {
+        JobResponseDTO response = new JobResponseDTO();
+        response.setId(1L);
+        response.setTitle("Updated Dev");
+        when(jobService.updateJob(eq(1L), any(), eq(10L), eq("RECRUITER"))).thenReturn(response);
+
+        mockMvc.perform(put("/api/jobs/1")
+                .with(csrf())
+                .with(SecurityMockMvcRequestPostProcessors.anonymous())
+                .header("X-User-Id", "10")
+                .header("X-User-Role", "RECRUITER")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"Updated Dev\",\"companyName\":\"Corp\",\"location\":\"NYC\",\"jobType\":\"FULL_TIME\",\"description\":\"desc\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Updated Dev"));
+    }
+
+    @Test
+    void searchJobs_returns200() throws Exception {
+        PagedResponse<JobResponseDTO> response = new PagedResponse<>(
+                Collections.emptyList(), 0, 0, 0, true);
+        when(jobService.searchJobs(anyString(), anyString(), anyString(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/jobs/search")
+                .with(SecurityMockMvcRequestPostProcessors.anonymous())
+                .param("title", "Java")
+                .param("location", "NYC")
+                .param("jobType", "FULL_TIME")
+                .param("experienceYears", "3"))
                 .andExpect(status().isOk());
     }
 }

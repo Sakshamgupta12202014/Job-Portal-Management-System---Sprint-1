@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.capg.jobportal.dto.PagedResponse;
 import com.capg.jobportal.dto.UserInfoResponse;
 import com.capg.jobportal.dto.UserProfileResponse;
 import com.capg.jobportal.service.AuthService;
@@ -63,6 +65,18 @@ public class InternalAuthController {
         List<UserProfileResponse> users = authService.getAllUsers();
 
         logger.info("Returned {} users", users.size());
+
+        return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @GetMapping("/users/paged")
+    public ResponseEntity<PagedResponse<UserProfileResponse>> getAllUsersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        logger.info("Internal API → Fetching paginated users — page: {}, size: {}", page, size);
+
+        PagedResponse<UserProfileResponse> users = authService.getAllUsersPaged(page, size);
 
         return new ResponseEntity<>(users, HttpStatus.OK);
     }

@@ -1,21 +1,9 @@
 package com.capg.jobportal.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-/*
- * ================================================================
- * AUTHOR: Saksham Gupta
- * CLASS: JobService
- * DESCRIPTION:
- * This service contains business logic for job management including
- * job creation, retrieval, search, update, deletion, and admin-level
- * operations. It also handles pagination and filtering.
- * ================================================================
- */
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -23,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.capg.jobportal.Exceptions.ForbiddenException;
 import com.capg.jobportal.Exceptions.InvalidJobTypeException;
@@ -36,17 +25,31 @@ import com.capg.jobportal.enums.JobType;
 import com.capg.jobportal.event.JobPostedEvent;
 import com.capg.jobportal.repository.JobRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/*
+ * ================================================================
+ * AUTHOR: Saksham Gupta
+ * CLASS: JobService
+ * DESCRIPTION:
+ * This service contains business logic for job management including
+ * job creation, retrieval, search, update, deletion, and admin-level
+ * operations. It also handles pagination and filtering.
+ * ================================================================
+ */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class JobService {
 
-    /*
-     * Logger instance for tracking business logic execution
-     */
-    private static final Logger logger = LogManager.getLogger(JobService.class);
-
     private final JobRepository jobRepository;
-    
     private final RabbitTemplate rabbitTemplate;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Value("${rabbitmq.exchange}")
     private String exchange;
@@ -54,68 +57,79 @@ public class JobService {
     @Value("${rabbitmq.routing-key}")
     private String routingKey;
 
-    public JobService(JobRepository jobRepository , RabbitTemplate rabbitTemplate) {
-        this.jobRepository = jobRepository;
-        this.rabbitTemplate = rabbitTemplate;
-    }
-    
-    
-    
-    
-
-    
     /* ================================================================
      * METHOD: postJob
      * DESCRIPTION:
      * Allows a recruiter to create and post a new job.
      * ================================================================ */
+    @Transactional
     public JobResponseDTO postJob(JobRequestDTO dto, Long postedBy, String userRole) {
 
-        logger.info("Recruiter [{}] posting job: {}", postedBy, dto.getTitle());
+        log.info("Recruiter [{}] posting job: {}", postedBy, dto.getTitle());
 
-        if (!userRole.equals("RECRUITER")) {
-            logger.warn("Unauthorized role '{}' tried to post job", userRole);
+        if (!"RECRUITER".equals(userRole)) {
+            log.warn("Unauthorized role '{}' tried to post job", userRole);
             throw new ForbiddenException("Only recruiters can post jobs");
         }
 
         Job job = convertToEntity(dto);
         job.setPostedBy(postedBy);
-        job.setStatus(JobStatus.ACTIVE);
+        
+        // Use status from DTO if provided (e.g. DRAFT), otherwise default to ACTIVE
+        if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+            try {
+                job.setStatus(JobStatus.valueOf(dto.getStatus().toUpperCase().trim()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid status provided: {}. Defaulting to ACTIVE", dto.getStatus());
+                job.setStatus(JobStatus.ACTIVE);
+            }
+        } else {
+            job.setStatus(JobStatus.ACTIVE);
+        }
 
         Job saved = jobRepository.save(job);
         
-     // Publish event to RabbitMQ after job is saved
-        JobPostedEvent event = new JobPostedEvent(
-                saved.getId(),
-                saved.getTitle(),
-                saved.getCompanyName(),
-                saved.getLocation(),
-                saved.getJobType().name(),
-                saved.getSalary(),
-                saved.getExperienceYears(),
-                saved.getDescription()
-        );
-        rabbitTemplate.convertAndSend(exchange, routingKey, event);
+        // Only publish event if job is ACTIVE
+        if (saved.getStatus() == JobStatus.ACTIVE) {
+            publishJobEvent(saved);
+        }
 
-        logger.info("Job [{}] created successfully", saved.getId());
+        log.info("Job [{}] created successfully with status: {}", saved.getId(), saved.getStatus());
 
         return convertToResponseDTO(saved);
+    }
+    
+    private void publishJobEvent(Job job) {
+        JobPostedEvent event = new JobPostedEvent(
+                job.getId(),
+                job.getTitle(),
+                job.getCompanyName(),
+                job.getLocation(),
+                job.getJobType().name(),
+                job.getSalary(),
+                job.getExperienceYears(),
+                job.getDescription()
+        );
+        rabbitTemplate.convertAndSend(exchange, routingKey, event);
     }
     
 
     /* ================================================================
      * METHOD: getAllJobs
      * DESCRIPTION:
-     * Retrieves all active jobs with pagination support.
+     * Retrieves all active and closed jobs for public view (hides DRAFT).
      * ================================================================ */
     public PagedResponse<JobResponseDTO> getAllJobs(int page, int size) {
 
-        logger.debug("Fetching jobs — page: {}, size: {}", page, size);
+        log.debug("Fetching public jobs — page: {}, size: {}", page, size);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Job> jobPage = jobRepository.findByStatusNot(JobStatus.DELETED, pageable);
+        
+        // Publicly visible jobs: ACTIVE and CLOSED (DRAFT and DELETED are hidden)
+        Page<Job> jobPage = jobRepository.findByStatusIn(
+                Arrays.asList(JobStatus.ACTIVE, JobStatus.CLOSED), pageable);
 
-        logger.info("Fetched {} jobs", jobPage.getNumberOfElements());
+        log.info("Fetched {} public jobs", jobPage.getNumberOfElements());
 
         return buildPagedResponse(jobPage);
     }
@@ -124,33 +138,46 @@ public class JobService {
     /* ================================================================
      * METHOD: getJobById
      * DESCRIPTION:
-     * Fetches job details using job ID.
+     * Fetches job details. Public can only see ACTIVE/CLOSED. 
+     * Owner recruiter can see DRAFT.
      * ================================================================ */
-    public JobResponseDTO getJobById(Long id) {
+    public JobResponseDTO getJobById(Long id, Long currentUserId, String currentUserRole) {
 
-        logger.debug("Fetching job [{}]", id);
+        log.debug("Fetching job [{}]", id);
 
         Job job = jobRepository.findByIdAndStatusNot(id, JobStatus.DELETED)
                 .orElseThrow(() -> {
-                    logger.warn("Job [{}] not found", id);
+                    log.warn("Job [{}] not found", id);
                     return new ResourceNotFoundException("Job not found with id: " + id);
                 });
 
+        // Visibility Rule for DRAFT: Only the owner recruiter can see it
+        if (job.getStatus() == JobStatus.DRAFT) {
+            if (currentUserId == null || !job.getPostedBy().equals(currentUserId)) {
+                log.warn("User [{}] attempted to view DRAFT job [{}]", currentUserId, id);
+                throw new ResourceNotFoundException("Job not found");
+            }
+        }
+
         return convertToResponseDTO(job);
+    }
+    
+    // Legacy overload for backward compatibility if needed (defaults to public access)
+    public JobResponseDTO getJobById(Long id) {
+        return getJobById(id, null, null);
     }
 
     
     /* ================================================================
      * METHOD: searchJobs
      * DESCRIPTION:
-     * Searches jobs based on filters such as title, location,
-     * job type, and experience with pagination.
+     * Searches jobs. Native query already filters for ACTIVE only.
      * ================================================================ */
     public PagedResponse<JobResponseDTO> searchJobs(String title, String location,
                                                     String jobType, Integer experienceYears,
                                                     int page, int size) {
 
-        logger.info("Searching jobs — title: {}, location: {}", title, location);
+        log.info("Searching jobs — title: {}, location: {}", title, location);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
@@ -160,7 +187,7 @@ public class JobService {
             try {
                 jobTypeEnum = JobType.valueOf(jobType.toUpperCase());
             } catch (Exception e) {
-                logger.warn("Invalid job type: {}", jobType);
+                log.warn("Invalid job type: {}", jobType);
                 throw new InvalidJobTypeException("Invalid job type: " + jobType);
             }
         }
@@ -168,7 +195,7 @@ public class JobService {
         Page<Job> jobPage = jobRepository.searchJobs(
                 title, location, jobTypeEnum, experienceYears, pageable);
 
-        logger.info("Search returned {} results", jobPage.getTotalElements());
+        log.info("Search returned {} results", jobPage.getTotalElements());
 
         return buildPagedResponse(jobPage);
     }
@@ -179,10 +206,11 @@ public class JobService {
      * DESCRIPTION:
      * Updates job details if the requester is the owner recruiter.
      * ================================================================ */
+    @Transactional
     public JobResponseDTO updateJob(Long id, JobRequestDTO dto,
                                    Long currentUserId, String currentUserRole) {
 
-        logger.info("Updating job [{}] by user [{}]", id, currentUserId);
+        log.info("SUPER-DEBUG: Updating job [{}] with status: {}", id, dto.getStatus());
 
         if (!currentUserRole.equals("RECRUITER")) {
             throw new ForbiddenException("Only recruiters can update jobs");
@@ -195,21 +223,50 @@ public class JobService {
             throw new ForbiddenException("Not your job");
         }
 
-        job.setTitle(dto.getTitle());
-        job.setCompanyName(dto.getCompanyName());
-        job.setLocation(dto.getLocation());
-        job.setSalary(dto.getSalary());
-        job.setExperienceYears(dto.getExperienceYears());
-        job.setJobType(JobType.valueOf(dto.getJobType().toUpperCase()));
-        job.setSkillsRequired(dto.getSkillsRequired());
-        job.setDescription(dto.getDescription());
-        job.setDeadline(dto.getDeadline());
+        // Capture previous status to detect publishing
+        JobStatus oldStatus = job.getStatus();
 
-        Job updated = jobRepository.save(job);
+        // Use native query first to be 100% sure the DB record is updated
+        if (dto.getStatus() != null && !dto.getStatus().isEmpty()) {
+            String newStatusStr = dto.getStatus().toUpperCase().trim();
+            log.info("SUPER-DEBUG: Executing native update for job [{}] to {}", id, newStatusStr);
+            jobRepository.updateJobStatus(id, newStatusStr);
+            // Force flush and clear to ensure Hibernate reloads from DB
+            entityManager.flush();
+            entityManager.clear();
+        }
 
-        logger.info("Job [{}] updated successfully", id);
+        // Now find the job (it will be re-fetched from DB due to clear())
+        Job reFetchedJob = jobRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found after update"));
 
-        return convertToResponseDTO(updated);
+        // Update other fields on the managed entity
+        reFetchedJob.setTitle(dto.getTitle());
+        reFetchedJob.setCompanyName(dto.getCompanyName());
+        reFetchedJob.setLocation(dto.getLocation());
+        reFetchedJob.setSalary(dto.getSalary());
+        reFetchedJob.setExperienceYears(dto.getExperienceYears());
+        
+        if (dto.getJobType() != null) {
+            reFetchedJob.setJobType(JobType.valueOf(dto.getJobType().toUpperCase().trim()));
+        }
+        
+        reFetchedJob.setSkillsRequired(dto.getSkillsRequired());
+        reFetchedJob.setDescription(dto.getDescription());
+        reFetchedJob.setDeadline(dto.getDeadline());
+        
+        // Final save for non-status fields
+        Job saved = jobRepository.saveAndFlush(reFetchedJob);
+
+        // If transitioning from DRAFT to ACTIVE, publish the event
+        if (oldStatus == JobStatus.DRAFT && saved.getStatus() == JobStatus.ACTIVE) {
+            log.info("Job [{}] published! Sending notification event.", id);
+            publishJobEvent(saved);
+        }
+
+        log.info("SUPER-DEBUG: Update complete. Final status: {}", saved.getStatus());
+
+        return convertToResponseDTO(saved);
     }
     
 
@@ -218,9 +275,10 @@ public class JobService {
      * DESCRIPTION:
      * Performs soft delete of job if requester is owner recruiter.
      * ================================================================ */
+    @Transactional
     public void deleteJob(Long id, Long userId, String role) {
 
-        logger.info("Deleting job [{}] by user [{}]", id, userId);
+        log.info("Deleting job [{}] by user [{}]", id, userId);
 
         if (!role.equals("RECRUITER")) {
             throw new ForbiddenException("Only recruiters can delete jobs");
@@ -236,7 +294,7 @@ public class JobService {
         job.setStatus(JobStatus.DELETED);
         jobRepository.save(job);
 
-        logger.info("Job [{}] soft deleted", id);
+        log.info("Job [{}] soft deleted", id);
     }
 
     
@@ -247,7 +305,7 @@ public class JobService {
      * ================================================================ */
     public PagedResponse<JobResponseDTO> getMyJobs(Long userId, String role, int page, int size) {
 
-        logger.info("Fetching jobs for recruiter [{}]", userId);
+        log.info("Fetching jobs for recruiter [{}]", userId);
 
         if (!role.equals("RECRUITER")) {
             throw new ForbiddenException("Access denied");
@@ -255,6 +313,7 @@ public class JobService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
+        // Recruiter sees their own jobs (ACTIVE, CLOSED, DRAFT) but not DELETED
         Page<Job> jobPage =
                 jobRepository.findByPostedByAndStatusNot(userId, JobStatus.DELETED, pageable);
 
@@ -263,21 +322,29 @@ public class JobService {
 
     
     /* ================================================================
-     * METHOD: getAllJobsForAdmin
+     * METHOD: getAllJobsForAdmin (Paginated)
      * DESCRIPTION:
-     * Retrieves all jobs including deleted ones for admin usage.
+     * Retrieves all jobs with optional company name filtering and pagination.
      * ================================================================ */
+    public PagedResponse<JobResponseDTO> getAllJobsForAdmin(int page, int size, String companyName) {
+        log.info("Admin fetching paginated jobs [company={}] — page: {}, size: {}", 
+            companyName, page, size);
+            
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        
+        // Use the new repository method that handles optional filtering
+        Page<Job> jobPage = jobRepository.findAllForAdmin(companyName, pageable);
+        
+        return buildPagedResponse(jobPage);
+    }
+
     public List<JobResponseDTO> getAllJobsForAdmin() {
-
-        logger.info("Admin fetching all jobs");
-
+        log.info("Admin fetching all jobs");
         List<Job> jobs = jobRepository.findAll();
         List<JobResponseDTO> result = new ArrayList<>();
-
         for (Job job : jobs) {
             result.add(convertToResponseDTO(job));
         }
-
         return result;
     }
 
@@ -287,9 +354,10 @@ public class JobService {
      * DESCRIPTION:
      * Allows admin to soft delete any job without ownership check.
      * ================================================================ */
+    @Transactional
     public void deleteJobByAdmin(Long id) {
 
-        logger.info("Admin deleting job [{}]", id);
+        log.info("Admin deleting job [{}]", id);
 
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found"));
@@ -320,7 +388,16 @@ public class JobService {
         job.setLocation(dto.getLocation());
         job.setSalary(dto.getSalary());
         job.setExperienceYears(dto.getExperienceYears());
-        job.setJobType(JobType.valueOf(dto.getJobType().toUpperCase()));
+        
+        if (dto.getJobType() != null && !dto.getJobType().trim().isEmpty()) {
+            try {
+                job.setJobType(JobType.valueOf(dto.getJobType().toUpperCase().trim()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid job type provided: {}. Defaulting to FULL_TIME", dto.getJobType());
+                job.setJobType(JobType.FULL_TIME);
+            }
+        }
+        
         job.setSkillsRequired(dto.getSkillsRequired());
         job.setDescription(dto.getDescription());
         job.setDeadline(dto.getDeadline());

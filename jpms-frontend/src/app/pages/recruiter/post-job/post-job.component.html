@@ -1,0 +1,87 @@
+<div class="page-container max-w-3xl">
+  <h1 class="page-title mb-8">Post a New Job</h1>
+
+  <div class="card">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="label">Job Title *</label>
+          <input formControlName="title" class="input" [class.input-error]="hasError('title')"
+                 placeholder="e.g. Senior Angular Developer"/>
+          @if (hasError('title')) { <p class="error-msg">Title is required</p> }
+        </div>
+        <div>
+          <label class="label">Company Name *</label>
+          <input formControlName="companyName" class="input" [class.input-error]="hasError('companyName')"
+                 placeholder="Your company name"/>
+          @if (hasError('companyName')) { <p class="error-msg">Company name is required</p> }
+        </div>
+        <div>
+          <label class="label">Location *</label>
+          <input formControlName="location" class="input" [class.input-error]="hasError('location')"
+                 placeholder="e.g. Bangalore, Remote"/>
+          @if (hasError('location')) { <p class="error-msg">Location is required</p> }
+        </div>
+        <div>
+          <label class="label">Job Type *</label>
+          <select formControlName="jobType" class="input" [class.input-error]="hasError('jobType')">
+            <option value="">Select type</option>
+            @for (t of jobTypes; track t) { <option [value]="t">{{ t }}</option> }
+          </select>
+          @if (hasError('jobType')) { <p class="error-msg">Job type is required</p> }
+        </div>
+        <div>
+          <label class="label">Salary (₹/yr)</label>
+          <input formControlName="salary" type="number" class="input" placeholder="e.g. 1200000"/>
+        </div>
+        <div>
+          <label class="label">Experience Required (years) *</label>
+          <input formControlName="experienceYears" type="number" class="input" min="0"
+                 [class.input-error]="hasError('experienceYears')" placeholder="e.g. 3"/>
+          @if (hasError('experienceYears')) { <p class="error-msg">Experience is required</p> }
+        </div>
+        <div>
+          <label class="label">Application Deadline *</label>
+          <input formControlName="deadline" type="date" class="input"
+                 [class.input-error]="hasError('deadline')"/>
+          @if (hasError('deadline')) { <p class="error-msg">Deadline is required</p> }
+        </div>
+        <div>
+          <label class="label">Status</label>
+          <select formControlName="status" class="input">
+            <option value="ACTIVE">Active</option>
+            <option value="CLOSED">Closed</option>
+            <option value="DRAFT">Draft</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="label">Skills Required</label>
+        <input formControlName="skillsRequired" class="input"
+               placeholder="e.g. Angular, Java, Spring Boot (comma separated)"/>
+      </div>
+
+      <div>
+        <label class="label">Job Description *</label>
+        <textarea formControlName="description" rows="6" class="input resize-none"
+                  [class.input-error]="hasError('description')"
+                  placeholder="Describe the role, responsibilities, and requirements..."></textarea>
+        @if (hasError('description')) { <p class="error-msg">Description is required</p> }
+      </div>
+
+      @if (errorMsg()) {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+          {{ errorMsg() }}
+        </div>
+      }
+
+      <div class="flex gap-3 pt-2">
+        <button type="submit" class="btn-primary flex-1 justify-center" [disabled]="loading()">
+          {{ loading() ? 'Posting...' : '🚀 Post Job' }}
+        </button>
+        <button type="button" (click)="cancel()" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>

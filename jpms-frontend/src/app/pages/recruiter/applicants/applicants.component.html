@@ -1,0 +1,136 @@
+<div class="page-container max-w-5xl">
+  <div class="mb-8">
+    <a routerLink="/recruiter/my-jobs" 
+       class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors mb-4 group">
+      <span class="group-hover:-translate-x-1 transition-transform">←</span>
+      Back to My Jobs
+    </a>
+    <h1 class="page-title text-3xl font-black">Applicants for Job #{{ jobId() }}</h1>
+    <p class="page-subtitle text-gray-500">{{ applicants().length }} talent(s) identified</p>
+  </div>
+
+  @if (loading()) {
+    <div class="space-y-4">
+      @for (_ of [1,2,3]; track $index) {
+        <div class="card h-32 animate-pulse bg-gray-50 dark:bg-gray-800/50 rounded-2xl"></div>
+      }
+    </div>
+  } @else if (applicants().length === 0) {
+    <div class="card text-center py-20 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
+      <p class="text-5xl mb-4 grayscale">📭</p>
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white">No applications yet</h2>
+      <p class="text-gray-500 mt-2">Waiting for the right candidates to find your listing.</p>
+    </div>
+  } @else {
+    <div class="space-y-6 animate-fade-in">
+      @for (app of applicants(); track app.id) {
+        <div class="card rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow p-0 overflow-hidden">
+          <div class="flex flex-col lg:flex-row">
+            
+            <!-- CANDIDATE PROFILE INFO -->
+            <div class="flex-1 p-6 sm:p-8">
+              <div class="flex flex-col sm:flex-row items-start gap-5">
+                <div class="w-16 h-16 rounded-2xl bg-primary-600 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-primary-500/20">
+                  {{ (app.candidateName || 'A').charAt(0) }}
+                </div>
+                
+                <div class="flex-1">
+                  <div class="flex flex-wrap items-center gap-3 mb-1">
+                    <h3 class="text-xl font-black text-gray-900 dark:text-white">{{ app.candidateName || 'Applicant #' + app.userId }}</h3>
+                    <app-status-badge [status]="app.status" />
+                  </div>
+                  
+                  <p class="text-sm font-semibold text-primary-600 dark:text-primary-400 mb-2">{{ app.candidateBio || 'Candidate profile headline not specified' }}</p>
+                  
+                  <div class="flex flex-wrap items-center gap-4 text-xs font-bold text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1.5">
+                      📍 {{ app.candidateLocation || 'Remote / Not Specified' }}
+                    </span>
+                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                    <span class="flex items-center gap-1.5">
+                      💼 {{ app.candidateExperience || 0 }} Years Experience
+                    </span>
+                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                    <span class="flex items-center gap-1.5">
+                      📅 Applied {{ app.appliedAt | date:'MMM d, yyyy' }}
+                    </span>
+                  </div>
+
+                  <!-- Skills Section -->
+                  @if (app.candidateSkills) {
+                    <div class="flex flex-wrap gap-2 mt-4">
+                      @for (skill of app.candidateSkills.split(','); track skill) {
+                        <span class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-[10px] uppercase tracking-wider font-black text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                          {{ skill.trim() }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Cover Letter Note -->
+              @if (app.coverLetter) {
+                <div class="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border-l-4 border-primary-500 italic text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                  "{{ app.coverLetter }}"
+                </div>
+              }
+            </div>
+
+            <!-- ACTION PANEL -->
+            <div class="w-full lg:w-80 bg-gray-50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-100 dark:border-gray-800 p-6 flex flex-col justify-between gap-6">
+              
+              <div class="space-y-4">
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-[10px] uppercase font-black text-gray-400 tracking-widest">Update Phase</label>
+                  @if (getAvailableStatuses(app.status).length > 0) {
+                    <select [(ngModel)]="statusUpdates[app.id].status" 
+                            [disabled]="isUpdating() === app.id"
+                            class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all disabled:opacity-50 cursor-pointer">
+                      @for (s of getAvailableStatuses(app.status); track s) { 
+                        <option [value]="s">{{ s.replace('_', ' ') }}</option> 
+                      }
+                    </select>
+                  } @else {
+                    <div class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-xs font-black text-gray-400 uppercase tracking-widest text-center">
+                      Finalized
+                    </div>
+                  }
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                  <label class="text-[10px] uppercase font-black text-gray-400 tracking-widest">Recruiter Note</label>
+                  <textarea [(ngModel)]="statusUpdates[app.id].note" 
+                            rows="2"
+                            [disabled]="isUpdating() === app.id"
+                            class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none disabled:opacity-50"
+                            placeholder="Add a private note..."></textarea>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                @if (app.resumeUrl) {
+                  <a [href]="app.resumeUrl" target="_blank" 
+                     class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-black text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition-all shadow-sm">
+                    📄 Resume
+                  </a>
+                }
+                @if (getAvailableStatuses(app.status).length > 0) {
+                  <button (click)="updateStatus(app.id)" 
+                          [disabled]="isUpdating() === app.id"
+                          class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-black shadow-lg shadow-primary-500/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                    @if (isUpdating() === app.id) {
+                      <span class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    }
+                    {{ isUpdating() === app.id ? 'Saving...' : 'Update' }}
+                  </button>
+                }
+              </div>
+            </div>
+
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

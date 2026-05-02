@@ -208,8 +208,8 @@ class AuthServiceTest {
         UserProfileResponse response = authService.getProfile(1L);
 
         assertNotNull(response);
-        assertEquals("John Doe", response.getName());
-        assertEquals("john@example.com", response.getEmail());
+        assertEquals("Saksham Gupta", response.getName());
+        assertEquals("saksham.guptalpu@gmail.com", response.getEmail());
     }
 
     @Test
@@ -235,5 +235,130 @@ class AuthServiceTest {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> authService.deleteUser(99L));
+    }
+
+    // ─── Profile Update Tests ────────────────────────────────────────
+
+    @Test
+    void updateProfilePicture_success() throws java.io.IOException {
+        org.springframework.web.multipart.MultipartFile file = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(cloudinaryUtil.uploadProfilePicture(file)).thenReturn("http://new-pic.jpg");
+
+        String result = authService.updateProfilePicture(1L, file);
+
+        assertEquals("http://new-pic.jpg", result);
+        assertEquals("http://new-pic.jpg", testUser.getProfilePictureUrl());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateProfileResume_success() throws java.io.IOException {
+        org.springframework.web.multipart.MultipartFile file = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(cloudinaryUtil.uploadResume(file)).thenReturn("http://new-resume.pdf");
+
+        String result = authService.updateProfileResume(1L, file);
+
+        assertEquals("http://new-resume.pdf", result);
+        assertEquals("http://new-resume.pdf", testUser.getResumeUrl());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateProfilePicture_userNotFound_throwsException() {
+        org.springframework.web.multipart.MultipartFile file = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.updateProfilePicture(99L, file));
+    }
+
+    @Test
+    void updateProfileResume_userNotFound_throwsException() {
+        org.springframework.web.multipart.MultipartFile file = mock(org.springframework.web.multipart.MultipartFile.class);
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.updateProfileResume(99L, file));
+    }
+
+    // ─── Admin / Status Tests ────────────────────────────────────────
+
+    @Test
+    void getAllUsers_success() {
+        when(userRepository.findAll()).thenReturn(Arrays.asList(testUser));
+
+        List<UserProfileResponse> result = authService.getAllUsers();
+
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void updateUserStatus_success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        authService.updateUserStatus(1L, "BANNED");
+
+        assertEquals(UserStatus.BANNED, testUser.getStatus());
+        assertNull(testUser.getRefreshToken());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateUserStatus_userNotFound_throwsException() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.updateUserStatus(99L, "BANNED"));
+    }
+
+    @Test
+    void invalidateTokenByUserId_success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        authService.invalidateTokenByUserId(1L);
+
+        assertNull(testUser.getRefreshToken());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void getJobSeekerEmails_success() {
+        testUser.setRole(Role.JOB_SEEKER);
+        testUser.setStatus(UserStatus.ACTIVE);
+        
+        User bannedUser = new User();
+        bannedUser.setRole(Role.JOB_SEEKER);
+        bannedUser.setStatus(UserStatus.BANNED);
+        bannedUser.setEmail("banned@example.com");
+
+        when(userRepository.findByRole(Role.JOB_SEEKER)).thenReturn(Arrays.asList(testUser, bannedUser));
+
+        List<String> result = authService.getJobSeekerEmails();
+
+        assertEquals(1, result.size());
+        assertEquals("saksham.guptalpu@gmail.com", result.get(0));
+    }
+
+    @Test
+    void invalidateTokenByUserId_userNotFound_doesNothing() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        authService.invalidateTokenByUserId(99L);
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void refresh_bannedUser_throwsException() {
+        testUser.setStatus(UserStatus.BANNED);
+        when(userRepository.findByRefreshToken("token")).thenReturn(Optional.of(testUser));
+
+        assertThrows(IllegalArgumentException.class, () -> authService.refresh("token"));
+    }
+
+    @Test
+    void logout_invalidToken_throwsException() {
+        when(userRepository.findByRefreshToken("token")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.logout("token"));
     }
 }

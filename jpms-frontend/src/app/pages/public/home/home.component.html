@@ -1,0 +1,128 @@
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-gray-950 pt-20 pb-32">
+  <!-- Background gradient blobs -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary-700/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative page-container text-center">
+    <span class="badge-blue text-sm mb-6 inline-block">
+      🚀 Find Your Dream Job Today
+    </span>
+    <h1 class="text-5xl sm:text-6xl font-extrabold text-white mb-6 leading-tight">
+      Connect. Apply.<br>
+      <span class="bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
+        Get Hired.
+      </span>
+    </h1>
+    <p class="text-lg text-gray-400 max-w-xl mx-auto mb-10">
+      Discover thousands of opportunities from top companies. Your next career move starts here.
+    </p>
+
+    <!-- Search Bar -->
+    <div class="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+      <input
+        [(ngModel)]="searchTitle"
+        placeholder="Job title or keyword..."
+        class="input flex-1 text-base h-12"/>
+      <input
+        [(ngModel)]="searchLocation"
+        placeholder="Location..."
+        class="input w-full sm:w-48 h-12"/>
+      <button (click)="search()" class="btn-primary h-12 px-8 text-base">
+        Search
+      </button>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="flex justify-center gap-10 mt-14 flex-wrap">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-white">{{ stats().totalJobs }}+</div>
+        <div class="text-sm text-gray-400 mt-1">Active Jobs</div>
+      </div>
+      <div class="w-px bg-gray-800 hidden sm:block"></div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-white">{{ stats().totalApplications }}+</div>
+        <div class="text-sm text-gray-400 mt-1">Applications</div>
+      </div>
+      <div class="w-px bg-gray-800 hidden sm:block"></div>
+      <div class="text-center">
+        <div class="text-3xl font-bold text-white">{{ stats().totalUsers }}+</div>
+        <div class="text-sm text-gray-400 mt-1">Candidates</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Job Type Filters -->
+<section class="bg-gray-900 border-y border-gray-800 py-5">
+  <div class="page-container">
+    <div class="flex flex-wrap gap-3 justify-center">
+      @for (type of jobTypes; track type) {
+        <button
+          (click)="filterByType(type)"
+          class="px-5 py-2 rounded-full text-sm font-medium border transition-all"
+          [ngClass]="selectedType === type
+            ? 'bg-primary-600 border-primary-600 text-white'
+            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-primary-600 hover:text-primary-400'">
+          {{ type }}
+        </button>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Featured Jobs -->
+<section class="page-container">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h2 class="text-2xl font-bold text-white">Featured Jobs</h2>
+      <p class="text-gray-400 text-sm mt-1">{{ featuredJobs().length }} positions available</p>
+    </div>
+    <a routerLink="/jobs" class="btn-secondary btn-sm">View All →</a>
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      @for (_ of skeletons; track $index) {
+        <div class="card animate-pulse">
+          <div class="h-4 bg-gray-800 rounded w-3/4 mb-3"></div>
+          <div class="h-3 bg-gray-800 rounded w-1/2 mb-4"></div>
+          <div class="h-3 bg-gray-800 rounded w-full mb-2"></div>
+          <div class="h-3 bg-gray-800 rounded w-2/3"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 animate-fade-in">
+      @for (job of featuredJobs(); track job.id) {
+        <app-job-card [job]="job" />
+      }
+    </div>
+  }
+</section>
+
+<!-- CTA Section -->
+<section class="page-container mt-8 mb-16">
+  <div class="card bg-gradient-to-r from-primary-900/40 to-accent-900/20 border-primary-800/40
+              text-center py-14 px-8">
+    <h2 class="text-3xl font-bold text-white mb-3">Are you a Recruiter?</h2>
+    <p class="text-gray-400 mb-8 max-w-md mx-auto">
+      Post jobs and find the best talent from thousands of qualified candidates.
+    </p>
+    @if (!isLoggedIn()) {
+      <a routerLink="/register" class="btn-primary text-base px-8 py-3">
+        Post a Job for Free
+      </a>
+    } @else if (currentRole() === 'RECRUITER') {
+      <a routerLink="/recruiter/post-job" class="btn-primary text-base px-8 py-3">
+        Post a Job for Free
+      </a>
+    } @else {
+      <a routerLink="/seeker/dashboard" class="btn-primary text-base px-8 py-3">
+        Go to Dashboard
+      </a>
+    }
+  </div>
+</section>

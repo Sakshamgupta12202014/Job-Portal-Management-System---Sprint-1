@@ -1,7 +1,7 @@
 package com.capg.jobportal.enums;
 
 public enum UserStatus {
-	ACTIVE,
+    ACTIVE,
     INACTIVE,
     BANNED
 }

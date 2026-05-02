@@ -1,0 +1,268 @@
+<div class="page-container max-w-7xl mx-auto px-4 py-8">
+  
+  <!-- Header -->
+  <div class="mb-10">
+    <h1 class="text-4xl font-black text-gray-900 dark:text-white tracking-tight">Recruiter Dashboard</h1>
+    <p class="text-gray-500 font-medium mt-1">Welcome back, {{ userName() }}</p>
+  </div>
+
+  <!-- Top Stats Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+    <!-- LIVE JOB POSTINGS -->
+    <div class="card p-8 border-none bg-white dark:bg-gray-900 shadow-xl shadow-gray-100 dark:shadow-none rounded-3xl relative overflow-hidden group">
+      <div class="relative z-10">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Live Job Postings</p>
+        <div class="flex items-end gap-2">
+          <h3 class="text-5xl font-black text-gray-900 dark:text-white">{{ liveJobs() }}</h3>
+        </div>
+        <div class="mt-6 w-8 h-1.5 bg-emerald-500 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- APPLICATION VELOCITY -->
+    <div class="card p-8 border-none bg-gray-900 dark:bg-black shadow-xl rounded-3xl relative overflow-hidden group">
+      <div class="relative z-10">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-gray-500">Application Velocity</p>
+        <div class="flex items-end gap-2">
+          <h3 class="text-5xl font-black text-white">{{ applicationVelocity() }}</h3>
+        </div>
+        <p class="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-tighter">Last 7 Days</p>
+        <div class="mt-4 flex items-center justify-end">
+          <div class="w-16 h-1 bg-purple-500/30 rounded-full overflow-hidden">
+            <div class="w-2/3 h-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AWAITING REVIEW -->
+    <div class="card p-8 border-none bg-white dark:bg-gray-900 shadow-xl shadow-gray-100 dark:shadow-none rounded-3xl relative overflow-hidden group">
+      <div class="relative z-10">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Awaiting Review</p>
+        <div class="flex items-end gap-2">
+          <h3 class="text-5xl font-black text-gray-900 dark:text-white">{{ awaitingReview() }}</h3>
+        </div>
+        <div class="mt-6 w-8 h-1.5 bg-primary-600 rounded-full"></div>
+      </div>
+    </div>
+
+    <!-- CONVERSION RATE -->
+    <div class="card p-8 border-none bg-white dark:bg-gray-900 shadow-xl shadow-gray-100 dark:shadow-none rounded-3xl relative overflow-hidden group">
+      <div class="relative z-10">
+        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Conversion Rate</p>
+        <div class="flex items-end gap-2">
+          <h3 class="text-5xl font-black text-gray-900 dark:text-white">{{ conversionRate() }}%</h3>
+        </div>
+        <div class="mt-6 w-8 h-1.5 bg-blue-600 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Postings Section -->
+  <div class="mb-12">
+    <div class="card rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-950">
+      <div class="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <h2 class="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Recent Postings</h2>
+        <a routerLink="/recruiter/my-jobs" class="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors">Manage All →</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50/50 dark:bg-gray-900/30 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 dark:border-gray-800">
+              <th class="px-6 py-4">Title</th>
+              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4">Deadline</th>
+              <th class="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            @if (loading()) {
+              @for (i of [1,2]; track i) {
+                <tr class="animate-pulse">
+                  <td class="px-6 py-5"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-48"></div></td>
+                  <td class="px-6 py-5"><div class="h-6 bg-gray-100 dark:bg-gray-800 rounded-full w-20"></div></td>
+                  <td class="px-6 py-5"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-24"></div></td>
+                  <td class="px-6 py-5 ml-auto"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-16"></div></td>
+                </tr>
+              }
+            } @else {
+              @for (job of jobs().slice(0, 3); track job.id) {
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group">
+                  <td class="px-6 py-5">
+                    <div class="font-black text-sm text-gray-900 dark:text-gray-100">{{ job.title }}</div>
+                    <div class="text-[10px] text-gray-400 font-bold">{{ job.location }}</div>
+                  </td>
+                  <td class="px-6 py-5">
+                    <app-job-status-badge [status]="job.status" />
+                  </td>
+                  <td class="px-6 py-5 text-[11px] font-bold text-gray-500">
+                    {{ job.deadline | date:'MMM d, yyyy' }}
+                  </td>
+                  <td class="px-6 py-5 text-right">
+                    <a [routerLink]="['/recruiter/jobs', job.id, 'applicants']" class="text-[11px] font-black text-primary-600 hover:underline underline-offset-4">APPLICANTS</a>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Candidates Section -->
+  <div class="mb-12">
+    <div class="card rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-950">
+      <div class="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <h2 class="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Recent Candidates</h2>
+        <a routerLink="/recruiter/candidates" class="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors">View All →</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50/50 dark:bg-gray-900/30 text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100 dark:border-gray-800">
+              <th class="px-6 py-4">Candidate</th>
+              <th class="px-6 py-4">Role Applied</th>
+              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4 text-right">Applied Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            @if (loading()) {
+              @for (i of [1,2]; track i) {
+                <tr class="animate-pulse">
+                  <td class="px-6 py-5"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-40"></div></td>
+                  <td class="px-6 py-5"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-48"></div></td>
+                  <td class="px-6 py-5"><div class="h-6 bg-gray-100 dark:bg-gray-800 rounded-full w-20"></div></td>
+                  <td class="px-6 py-5 ml-auto"><div class="h-4 bg-gray-100 dark:bg-gray-800 rounded w-24"></div></td>
+                </tr>
+              }
+            } @else {
+              @for (app of applications().slice(0, 5); track app.id) {
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group">
+                  <td class="px-6 py-5 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary-600 text-white flex items-center justify-center font-black text-xs">
+                      {{ (app.candidateName || 'A').charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="font-black text-sm text-gray-900 dark:text-gray-100">{{ app.candidateName }}</div>
+                      <div class="text-[9px] text-gray-400 font-bold">{{ app.candidateEmail }}</div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-5 text-xs font-bold text-gray-600 dark:text-gray-300">
+                    {{ app.jobTitle }}
+                  </td>
+                  <td class="px-6 py-5">
+                    <app-status-badge [status]="app.status" />
+                  </td>
+                  <td class="px-6 py-5 text-right text-[10px] font-bold text-gray-400">
+                    {{ app.appliedAt | date:'MMM d, yyyy' }}
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Grid: Pipeline & Insights -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    
+    <!-- Review Pipeline -->
+    <div class="card rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden bg-white dark:bg-gray-950 relative">
+      <div class="p-6 border-b border-gray-100 dark:border-gray-800">
+        <h2 class="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Review Pipeline</h2>
+      </div>
+      
+      <!-- Translucent/Layered Scroll Area -->
+      <div class="relative">
+        <div class="p-6 space-y-4 max-h-[420px] overflow-y-auto no-scrollbar relative z-10 bg-white/40 dark:bg-black/10 backdrop-blur-[2px]">
+          @if (loading()) {
+            <div class="h-20 bg-gray-50 dark:bg-gray-900 rounded-2xl animate-pulse"></div>
+          } @else if (reviewQueue().length === 0) {
+            <div class="py-20 text-center">
+              <p class="text-3xl mb-4">✨</p>
+              <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">Pipeline Clear</h3>
+            </div>
+          } @else {
+            @for (app of reviewQueue(); track app.id) {
+              <div class="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-primary-500">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center font-black text-primary-600 shadow-sm text-lg">
+                    {{ (app.candidateName || 'A').charAt(0) }}
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-black text-gray-900 dark:text-white leading-tight">{{ app.candidateName }}</h4>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mt-0.5">{{ app.jobTitle }}</p>
+                    <p class="text-[9px] font-medium text-gray-400 mt-1">Applied {{ app.appliedAt | date:'MMM d' }}</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                  @if (app.status === 'APPLIED') {
+                    <button (click)="updateStatus(app.id, 'UNDER_REVIEW')" 
+                            [disabled]="isUpdating() === app.id"
+                            class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-primary-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-600/20 active:scale-95 transition-all disabled:opacity-50">
+                      Review
+                    </button>
+                  } @else if (app.status === 'UNDER_REVIEW') {
+                    <button (click)="updateStatus(app.id, 'SHORTLISTED')" 
+                            [disabled]="isUpdating() === app.id"
+                            class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50">
+                      Shortlist
+                    </button>
+                    <button (click)="updateStatus(app.id, 'REJECTED')" 
+                            [disabled]="isUpdating() === app.id"
+                            class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-red-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all disabled:opacity-50">
+                      Reject
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+        
+        <!-- Subtle Hint for more items (Fade effect) -->
+        <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white dark:from-gray-950 to-transparent pointer-events-none z-20"></div>
+      </div>
+    </div>
+
+    <!-- Talent Insights -->
+    <div class="card p-8 rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <h2 class="font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-8">Talent Insights</h2>
+      
+      <div class="space-y-6">
+        <div>
+          <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Trending Skills in Your Pipeline</p>
+          <div class="flex flex-wrap gap-3">
+            @if (loading()) {
+              <div class="h-6 w-20 bg-gray-100 dark:bg-gray-900 rounded-lg animate-pulse"></div>
+            } @else {
+              @for (item of trendingSkills(); track item[0]) {
+                <div class="px-4 py-2 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 flex items-center gap-3 group hover:border-primary-500 transition-all cursor-default">
+                  <span class="text-xs font-black text-gray-700 dark:text-gray-300">{{ item[0] }}</span>
+                  <span class="text-[10px] font-black text-primary-600 bg-primary-50 dark:bg-primary-900/30 px-2 py-0.5 rounded-full">
+                    {{ item[1] }}
+                  </span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-gradient-to-br from-primary-600 to-accent-600 text-white shadow-xl shadow-primary-600/20">
+          <h3 class="font-black text-sm mb-1 uppercase tracking-tighter">Market Demand</h3>
+          <p class="text-[10px] text-primary-100 font-medium mb-4">You are currently looking for talent with strong focus on {{ trendingSkills()[0]?.[0] || 'emerging technologies' }}.</p>
+          <div class="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+            <div class="h-full bg-white w-3/4 rounded-full shadow-[0_0_10px_white]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

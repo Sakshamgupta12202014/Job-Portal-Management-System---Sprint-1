@@ -183,6 +183,35 @@ public class ApplicationController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    /* ================================================================
+     * METHOD: getAllApplicationsForRecruiter
+     * DESCRIPTION:
+     * Fetches all applications across all jobs posted by the recruiter.
+     * ================================================================ */
+    @Operation(summary = "Get all applicants for recruiter")
+    @GetMapping("/recruiter")
+    public ResponseEntity<List<RecruiterApplicationResponse>> getAllApplicationsForRecruiter(
+            @Parameter(description = "User ID from Gateway", required = true)
+            @RequestHeader("X-User-Id") Long userId,
+
+            @Parameter(description = "User Role from Gateway", required = true)
+            @RequestHeader("X-User-Role") String role) {
+
+        logger.info("Recruiter [{}] fetching all candidates", userId);
+
+        if (!role.equals("RECRUITER")) {
+            logger.warn("Forbidden access: role '{}' tried to fetch recruiter candidates", role);
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        List<RecruiterApplicationResponse> response = 
+                applicationService.getAllApplicationsForRecruiter(userId);
+
+        logger.info("Returned {} total candidates for recruiter [{}]", response.size(), userId);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
     
     /* ================================================================
      * METHOD: updateApplicationStatus

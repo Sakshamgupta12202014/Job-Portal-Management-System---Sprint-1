@@ -100,4 +100,34 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.name").value("John Doe"))
                 .andExpect(jsonPath("$.email").value("john@example.com"));
     }
+
+    @Test
+    void uploadProfilePicture_returnsOk() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "picture", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "test image content".getBytes());
+
+        when(authService.updateProfilePicture(eq(1L), any())).thenReturn("http://cloudinary.com/pic.jpg");
+
+        mockMvc.perform(multipart("/api/auth/profile/picture")
+                .file(file)
+                .header("X-User-Id", "1")
+                .with(request -> { request.setMethod("PUT"); return request; }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profilePictureUrl").value("http://cloudinary.com/pic.jpg"));
+    }
+
+    @Test
+    void uploadResume_returnsOk() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file = new org.springframework.mock.web.MockMultipartFile(
+                "resume", "test.pdf", MediaType.APPLICATION_PDF_VALUE, "test pdf content".getBytes());
+
+        when(authService.updateProfileResume(eq(1L), any())).thenReturn("http://cloudinary.com/resume.pdf");
+
+        mockMvc.perform(multipart("/api/auth/profile/resume")
+                .file(file)
+                .header("X-User-Id", "1")
+                .with(request -> { request.setMethod("PUT"); return request; }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resumeUrl").value("http://cloudinary.com/resume.pdf"));
+    }
 }

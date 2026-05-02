@@ -1,0 +1,114 @@
+<div class="page-container">
+  <div class="mb-8">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <p class="page-subtitle">Platform overview and statistics</p>
+  </div>
+
+  @if (loading()) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="card h-24 animate-pulse bg-gray-200 dark:bg-gray-800"></div>
+      }
+    </div>
+  } @else if (report()) {
+    <!-- Top Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 animate-fade-in">
+      <!-- Job Seekers -->
+      <div class="stat-card">
+        <div class="stat-icon bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">🧑‍🎓</div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ report()!.seekerCount }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Job Seekers</div>
+        </div>
+      </div>
+      <!-- Recruiters -->
+      <div class="stat-card">
+        <div class="stat-icon bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">🏢</div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ report()!.recruiterCount }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Recruiters</div>
+        </div>
+      </div>
+      <!-- Total Jobs -->
+      <div class="stat-card">
+        <div class="stat-icon bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">💼</div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ report()!.totalJobs }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Jobs</div>
+        </div>
+      </div>
+      <!-- Total Applications -->
+      <div class="stat-card">
+        <div class="stat-icon bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">📋</div>
+        <div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ report()!.applicationStats.totalApplications }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Total Applications</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 animate-fade-in">
+      <!-- Quick Links -->
+      <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a routerLink="/admin/users" class="card-hover bg-gray-50 dark:bg-gray-800/50 flex items-center gap-3">
+            <span class="text-2xl">🧑‍💻</span> Manage Users
+          </a>
+          <a routerLink="/admin/jobs" class="card-hover bg-gray-50 dark:bg-gray-800/50 flex items-center gap-3">
+            <span class="text-2xl">🏢</span> Manage Jobs
+          </a>
+          <a routerLink="/admin/audit-logs" class="card-hover bg-gray-50 dark:bg-gray-800/50 flex items-center gap-3">
+            <span class="text-2xl">📜</span> View Audit Logs
+          </a>
+        </div>
+      </div>
+
+      <!-- Application Breakdown -->
+      <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Application Pipeline</h2>
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-500 dark:text-gray-400">Applied</span>
+              <span class="text-gray-900 dark:text-white font-medium">{{ report()!.applicationStats.appliedCount }}</span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+              <div class="bg-blue-500 h-2 rounded-full" [style.width.%]="getPercent(report()!.applicationStats.appliedCount)"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-500 dark:text-gray-400">Under Review</span>
+              <span class="text-gray-900 dark:text-white font-medium">{{ report()!.applicationStats.underReviewCount }}</span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+              <div class="bg-yellow-500 h-2 rounded-full" [style.width.%]="getPercent(report()!.applicationStats.underReviewCount)"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-500 dark:text-gray-400">Shortlisted</span>
+              <span class="text-gray-900 dark:text-white font-medium">{{ report()!.applicationStats.shortlistedCount }}</span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+              <div class="bg-emerald-500 h-2 rounded-full" [style.width.%]="getPercent(report()!.applicationStats.shortlistedCount)"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-500 dark:text-gray-400">Rejected</span>
+              <span class="text-gray-900 dark:text-white font-medium">{{ report()!.applicationStats.rejectedCount }}</span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+              <div class="bg-red-500 h-2 rounded-full" [style.width.%]="getPercent(report()!.applicationStats.rejectedCount)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Job Market Pulse Section -->
+  <app-job-market-pulse />
+</div>

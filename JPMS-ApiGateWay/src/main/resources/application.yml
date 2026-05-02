@@ -7,6 +7,19 @@ spring:
 
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
       discovery:
         locator:
           enabled: false
@@ -15,35 +28,85 @@ spring:
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authServiceCB
+                fallbackUri: forward:/fallback/auth
 
         - id: job-service
           uri: lb://job-service
           predicates:
             - Path=/api/jobs/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: jobServiceCB
+                fallbackUri: forward:/fallback/job
 
         - id: application-service
           uri: lb://application-service
           predicates:
             - Path=/api/applications/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: applicationServiceCB
+                fallbackUri: forward:/fallback/application
 
         - id: admin-service
           uri: lb://admin-service
           predicates:
             - Path=/api/admin/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: adminServiceCB
+                fallbackUri: forward:/fallback/admin
 
         - id: notification-service
           uri: lb://notification-service
           predicates:
             - Path=/api/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCB
+                fallbackUri: forward:/fallback/notification
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      authServiceCB:
+        baseConfig: default
+      jobServiceCB:
+        baseConfig: default
+      applicationServiceCB:
+        baseConfig: default
+      adminServiceCB:
+        baseConfig: default
+      notificationServiceCB:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-server:8761/eureka/
   instance:
     prefer-ip-address: true
-    hostname: localhost
-    ip-address: 127.0.0.1
 
 jwt:
   secret: jobportal_super_secret_key_must_be_at_least_32_characters_long

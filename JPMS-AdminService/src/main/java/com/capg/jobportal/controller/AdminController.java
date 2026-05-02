@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.capg.jobportal.dto.JobMarketPulseResponse;
 import com.capg.jobportal.dto.JobResponse;
 import com.capg.jobportal.dto.PlatformReport;
 import com.capg.jobportal.dto.UserResponse;
@@ -88,6 +90,18 @@ public class AdminController {
         logger.info("Total users fetched: {}", users.size());
 
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get paginated users for admin")
+    @GetMapping("/users/paged")
+    public ResponseEntity<com.capg.jobportal.dto.PagedResponse<UserResponse>> getAllUsersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "User Role from Gateway", required = true)
+            @RequestHeader("X-User-Role") String role) {
+        logger.info("Fetching paginated users — page: {}, size: {}", page, size);
+        assertAdmin(role);
+        return ResponseEntity.ok(adminService.getAllUsersPaged(page, size));
     }
     
 
@@ -177,17 +191,26 @@ public class AdminController {
     @Operation(summary = "Get all jobs")
     @GetMapping("/jobs")
     public ResponseEntity<List<JobResponse>> getAllJobs(
-
             @Parameter(description = "User Role from Gateway", required = true)
             @RequestHeader("X-User-Role") String role) {
-
         logger.info("Fetching all jobs");
         assertAdmin(role);
-
         List<JobResponse> jobs = adminService.getAllJobs();
         logger.info("Total jobs fetched: {}", jobs.size());
-
         return new ResponseEntity<>(jobs, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get paginated jobs for admin with optional company filter")
+    @GetMapping("/jobs/paged")
+    public ResponseEntity<com.capg.jobportal.dto.PagedResponse<JobResponse>> getAllJobsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String company,
+            @Parameter(description = "User Role from Gateway", required = true)
+            @RequestHeader("X-User-Role") String role) {
+        logger.info("Fetching paginated jobs [company={}, page={}, size={}]", company, page, size);
+        assertAdmin(role);
+        return ResponseEntity.ok(adminService.getAllJobsPaged(page, size, company));
     }
 
     
@@ -239,6 +262,41 @@ public class AdminController {
         return new ResponseEntity<>(report, HttpStatus.OK);
     }
     
+
+    /* ================================================================
+     * METHOD: getPublicStats
+     * DESCRIPTION:
+     * Retrieves basic platform statistics (total jobs, users, apps)
+     * for public display. No admin role required.
+     * ================================================================ */
+    @Operation(summary = "Get public platform stats")
+    @GetMapping("/public/stats")
+    public ResponseEntity<Map<String, Long>> getPublicStats() {
+        logger.info("Fetching public platform stats");
+        PlatformReport report = adminService.getReport();
+        
+        Map<String, Long> stats = Map.of(
+            "totalJobs", report.getTotalJobs(),
+            "totalUsers", report.getTotalUsers(),
+            "totalApplications", report.getApplicationStats().getTotalApplications()
+        );
+        
+        return new ResponseEntity<>(stats, HttpStatus.OK);
+    }
+
+    /* ================================================================
+     * METHOD: getMarketPulse
+     * DESCRIPTION:
+     * Retrieves real-time job market analytics. Accessible by
+     * Admins and Job Seekers.
+     * ================================================================ */
+    @Operation(summary = "Get job market pulse insights")
+    @GetMapping("/market-pulse")
+    public ResponseEntity<JobMarketPulseResponse> getMarketPulse() {
+        logger.info("Fetching job market pulse data");
+        JobMarketPulseResponse pulse = adminService.getMarketPulse();
+        return new ResponseEntity<>(pulse, HttpStatus.OK);
+    }
 
     /* ================================================================
      * METHOD: getAuditLogs

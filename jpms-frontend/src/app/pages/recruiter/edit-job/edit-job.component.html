@@ -1,0 +1,77 @@
+<div class="page-container max-w-3xl">
+  <h1 class="page-title mb-8">Edit Job</h1>
+  <div class="card">
+    @if (loadingJob()) {
+      <div class="space-y-4 animate-pulse">
+        @for (_ of [1,2,3,4]; track $index) {
+          <div class="h-10 bg-gray-800 rounded-lg"></div>
+        }
+      </div>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label class="label">Job Title *</label>
+            <input formControlName="title" class="input" [class.input-error]="hasError('title')"/>
+            @if (hasError('title')) { <p class="error-msg">Required</p> }
+          </div>
+          <div>
+            <label class="label">Company Name *</label>
+            <input formControlName="companyName" class="input" [class.input-error]="hasError('companyName')"/>
+            @if (hasError('companyName')) { <p class="error-msg">Required</p> }
+          </div>
+          <div>
+            <label class="label">Location *</label>
+            <input formControlName="location" class="input" [class.input-error]="hasError('location')"/>
+            @if (hasError('location')) { <p class="error-msg">Required</p> }
+          </div>
+          <div>
+            <label class="label">Job Type *</label>
+            <select formControlName="jobType" class="input">
+              @for (t of jobTypes; track t) { <option [value]="t">{{ t }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="label">Salary (₹/yr)</label>
+            <input formControlName="salary" type="number" class="input"/>
+          </div>
+          <div>
+            <label class="label">Experience (years) *</label>
+            <input formControlName="experienceYears" type="number" class="input" min="0"/>
+          </div>
+          <div>
+            <label class="label">Deadline *</label>
+            <input formControlName="deadline" type="date" class="input"/>
+          </div>
+          <div>
+            <label class="label">Status</label>
+            <select formControlName="status" class="input">
+              <option value="ACTIVE">Active</option>
+              <option value="CLOSED">Closed</option>
+              <option value="DRAFT">Draft</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="label">Skills Required</label>
+          <input formControlName="skillsRequired" class="input" placeholder="comma separated"/>
+        </div>
+        <div>
+          <label class="label">Description *</label>
+          <textarea formControlName="description" rows="6" class="input resize-none"
+                    [class.input-error]="hasError('description')"></textarea>
+          @if (hasError('description')) { <p class="error-msg">Required</p> }
+        </div>
+        @if (errorMsg()) {
+          <div class="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">{{ errorMsg() }}</div>
+        }
+        <div class="flex gap-3">
+          <button type="submit" class="btn-primary flex-1 justify-center" [disabled]="saving()">
+            {{ saving() ? 'Saving...' : '💾 Save Changes' }}
+          </button>
+          <button type="button" (click)="cancel()" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    }
+  </div>
+</div>

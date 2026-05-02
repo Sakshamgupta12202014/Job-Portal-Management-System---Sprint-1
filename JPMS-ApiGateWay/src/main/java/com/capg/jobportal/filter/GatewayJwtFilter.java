@@ -12,60 +12,59 @@ import org.springframework.web.server.ServerWebExchange;
 
 import com.capg.jobportal.util.JwtUtil;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class GatewayJwtFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
 
-    
-    public GatewayJwtFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
-    }
-
-    
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
         String method = request.getMethod().name();
 
-        System.out.println("=== FILTER CALLED === Path: " + path + " Method: " + method);
+        log.debug("=== FILTER CALLED === Path: {} Method: {}", path, method);
 
         
      // Block all internal endpoints from external access
         if (path.contains("/internal/")) {
-            System.out.println("=== BLOCKING INTERNAL ENDPOINT ===");
+            log.warn("=== BLOCKING INTERNAL ENDPOINT === Path: {}", path);
             return onError(exchange, HttpStatus.FORBIDDEN);
         }
         
-        
-        if (isPublicRoute(path, method)) {
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        boolean hasToken = authHeader != null && authHeader.startsWith("Bearer ");
+
+        // If it's a public route AND no token is provided, just let it pass
+        if (isPublicRoute(path, method) && !hasToken) {
             return chain.filter(exchange);
         }
         
-
-        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // If no token is provided and it's NOT a public route, block it
+        if (!hasToken) {
             return onError(exchange, HttpStatus.UNAUTHORIZED);
         }
 
+        // Token is provided, validate it
         String token = authHeader.substring(7);
 
         if (!jwtUtil.isTokenValid(token)) {
             return onError(exchange, HttpStatus.UNAUTHORIZED);
         }
 
+        // Extract user info
         String userId = jwtUtil.extractUserId(token);
         String role = jwtUtil.extractRole(token);
 
-        System.out.println("=== GATEWAY DEBUG ===");
-        System.out.println("Path: " + path);
-        System.out.println("UserId: " + userId);
-        System.out.println("Role: " + role);
+        log.debug("=== GATEWAY DEBUG === Path: {}, UserId: {}, Role: {}", path, userId, role);
 
+        // Inject headers and proceed
         ServerHttpRequest modifiedRequest = request.mutate()
                 .header("X-User-Id", userId)
                 .header("X-User-Role", role)
@@ -83,6 +82,7 @@ public class GatewayJwtFilter implements GlobalFilter, Ordered {
             if (path.equals("/api/jobs")) return true;
             if (path.equals("/api/jobs/search")) return true;
             if (path.matches("/api/jobs/\\d+")) return true;
+            if (path.equals("/api/admin/public/stats")) return true;
         }
 
         return false;

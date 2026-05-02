@@ -1,0 +1,80 @@
+<div class="page-container max-w-2xl">
+  <h1 class="page-title mb-6">Apply for Job</h1>
+
+  @if (job()) {
+    <!-- Job Summary -->
+    <div class="card mb-6 flex items-start gap-4 border-primary-800/40">
+      <div class="w-10 h-10 bg-primary-700/30 rounded-lg flex items-center justify-center text-lg flex-shrink-0">💼</div>
+      <div>
+        <h2 class="font-semibold text-white">{{ job()!.title }}</h2>
+        <p class="text-sm text-gray-400">{{ job()!.companyName }} · {{ job()!.location }}</p>
+      </div>
+    </div>
+  }
+
+  <div class="card space-y-6">
+    <!-- Cover Letter -->
+    <div>
+      <label class="label">Cover Letter (optional)</label>
+      <textarea [(ngModel)]="coverLetter" rows="5" class="input resize-none"
+                placeholder="Tell the recruiter why you're a great fit..."></textarea>
+    </div>
+
+    <!-- Resume Option -->
+    <div>
+      <label class="label">Resume</label>
+      <div class="flex flex-col gap-3">
+        <!-- Toggle -->
+        <div class="flex rounded-lg border border-gray-700 overflow-hidden">
+          <button
+            (click)="useExisting = false"
+            class="flex-1 py-2.5 text-sm font-medium transition-colors"
+            [ngClass]="!useExisting ? 'bg-primary-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'">
+            Upload New
+          </button>
+          <button
+            (click)="useExisting = true"
+            class="flex-1 py-2.5 text-sm font-medium transition-colors"
+            [ngClass]="useExisting ? 'bg-primary-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'"
+            [disabled]="!profileResumeUrl()">
+            Use Profile Resume
+          </button>
+        </div>
+
+        @if (!useExisting) {
+          <div class="border-2 border-dashed border-gray-700 rounded-xl p-6 text-center
+                      hover:border-primary-600 transition-colors cursor-pointer"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" accept=".pdf,.doc,.docx" class="hidden"
+                   (change)="onFileSelect($event)"/>
+            @if (resumeFile) {
+              <p class="text-sm text-emerald-400">✓ {{ resumeFile.name }}</p>
+            } @else {
+              <p class="text-sm text-gray-400">Click to upload PDF, DOC (max 5MB)</p>
+            }
+          </div>
+        } @else {
+          <div class="bg-gray-800 rounded-lg px-4 py-3 flex items-center gap-3">
+            <span class="text-emerald-400">📄</span>
+            <span class="text-sm text-gray-300 flex-1 truncate">{{ profileResumeUrl() }}</span>
+            <a [href]="profileResumeUrl()" target="_blank" class="text-xs text-primary-400 hover:underline">View</a>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
+        {{ error() }}
+      </div>
+    }
+
+    <div class="flex gap-3 pt-2">
+      <button (click)="submit()" class="btn-primary flex-1 justify-center"
+              [disabled]="submitting()">
+        @if (submitting()) { Submitting... } @else { Submit Application }
+      </button>
+      <button (click)="cancel()" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>

@@ -1,6 +1,5 @@
 package com.capg.jobportal.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -8,11 +7,15 @@ import org.springframework.stereotype.Service;
 import com.capg.jobportal.event.JobAppliedEvent;
 import com.capg.jobportal.event.JobPostedEvent;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
     public void sendJobAlert(String toEmail, JobPostedEvent event) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -20,6 +23,7 @@ public class EmailService {
         message.setSubject("New Job Alert: " + event.getTitle() + " at " + event.getCompanyName());
         message.setText(buildEmailBody(event));
         mailSender.send(message);
+        log.info("Job alert email sent to {}", toEmail);
     }
 
     private String buildEmailBody(JobPostedEvent event) {
@@ -42,6 +46,7 @@ public class EmailService {
         message.setSubject("New Application Received: " + event.getJobTitle());
         message.setText(buildApplicationEmailBody(event));
         mailSender.send(message);
+        log.info("Application alert email sent to recruiter {}", recruiterEmail);
     }
 
     private String buildApplicationEmailBody(JobAppliedEvent event) {

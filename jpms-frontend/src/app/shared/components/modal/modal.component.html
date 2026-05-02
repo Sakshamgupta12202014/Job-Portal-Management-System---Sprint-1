@@ -1,0 +1,49 @@
+@if (modal.modalState().isOpen) {
+  <div class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-gray-950/80 backdrop-blur-md animate-fade-in" 
+         (click)="handleCancel()"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] border border-gray-200 dark:border-gray-800 p-10 animate-scale-in">
+      
+      <!-- Header -->
+      <div class="flex items-center gap-5 mb-8">
+        <div [class]="getTypeClass(modal.modalState().options?.type)"
+             class="w-16 h-16 rounded-2xl flex items-center justify-center transition-colors">
+          @if (modal.modalState().options?.icon) {
+            <span class="text-3xl">{{ modal.modalState().options?.icon }}</span>
+          } @else {
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          }
+        </div>
+        <div>
+          <h2 class="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">
+            {{ modal.modalState().options?.title }}
+          </h2>
+          <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">Platform Moderation</p>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <p class="text-gray-600 dark:text-gray-400 font-medium leading-relaxed mb-10">
+        {{ modal.modalState().options?.message }}
+      </p>
+
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row items-center gap-3 justify-end">
+        <button (click)="handleCancel()" 
+                class="w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+          {{ modal.modalState().options?.cancelText }}
+        </button>
+        <button (click)="handleConfirm()"
+                [class]="getButtonClass(modal.modalState().options?.type)"
+                class="w-full sm:w-auto px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-2xl transition-all active:scale-95">
+          {{ modal.modalState().options?.confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

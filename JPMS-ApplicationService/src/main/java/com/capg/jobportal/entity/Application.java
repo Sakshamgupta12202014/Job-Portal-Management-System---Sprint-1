@@ -5,6 +5,11 @@ import java.time.LocalDateTime;
 
 import com.capg.jobportal.enums.ApplicationStatus;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
 @Table(
     name = "applications",
@@ -13,6 +18,10 @@ import com.capg.jobportal.enums.ApplicationStatus;
         name = "uk_user_job"
     )
 )
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Application {
 
     @Id
@@ -54,30 +63,4 @@ public class Application {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    public Application() {}
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-
-    public Long getJobId() { return jobId; }
-    public void setJobId(Long jobId) { this.jobId = jobId; }
-
-    public String getResumeUrl() { return resumeUrl; }
-    public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
-
-    public String getCoverLetter() { return coverLetter; }
-    public void setCoverLetter(String coverLetter) { this.coverLetter = coverLetter; }
-
-    public ApplicationStatus getStatus() { return status; }
-    public void setStatus(ApplicationStatus status) { this.status = status; }
-
-    public String getRecruiterNote() { return recruiterNote; }
-    public void setRecruiterNote(String recruiterNote) { this.recruiterNote = recruiterNote; }
-
-    public LocalDateTime getAppliedAt() { return appliedAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

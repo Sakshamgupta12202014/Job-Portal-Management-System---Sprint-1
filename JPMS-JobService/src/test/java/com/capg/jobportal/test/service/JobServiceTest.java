@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,6 +38,9 @@ class JobServiceTest {
 
     @Mock
     private JobRepository jobRepository;
+
+    @Mock
+    private org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private JobService jobService;
@@ -72,6 +76,9 @@ class JobServiceTest {
         testRequest.setSkillsRequired("Java, Spring Boot");
         testRequest.setDescription("Java Developer role");
         testRequest.setDeadline(LocalDate.of(2026, 12, 31));
+
+        org.springframework.test.util.ReflectionTestUtils.setField(jobService, "exchange", "test-exchange");
+        org.springframework.test.util.ReflectionTestUtils.setField(jobService, "routingKey", "test-routing-key");
     }
 
     // ─── Post Job ────────────────────────────────────────────────────
@@ -181,7 +188,113 @@ class JobServiceTest {
                 () -> jobService.getMyJobs(10L, "JOB_SEEKER", 0, 10));
     }
 
+    // ─── Get All Jobs ────────────────────────────────────────────────
+    @Test
+    void getAllJobs_success() {
+        List<Job> jobList = new ArrayList<>();
+        jobList.add(testJob);
+        Page<Job> jobPage = new PageImpl<>(jobList);
+        when(jobRepository.findByStatusNot(eq(JobStatus.DELETED), any(Pageable.class)))
+                .thenReturn(jobPage);
+
+        PagedResponse<JobResponseDTO> result = jobService.getAllJobs(0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+    }
+
+    // ─── Search Jobs ─────────────────────────────────────────────────
+    @Test
+    void searchJobs_allFilters_success() {
+        List<Job> jobList = new ArrayList<>();
+        jobList.add(testJob);
+        Page<Job> jobPage = new PageImpl<>(jobList);
+        when(jobRepository.searchJobs(anyString(), anyString(), any(JobType.class), anyInt(), any(Pageable.class)))
+                .thenReturn(jobPage);
+
+        PagedResponse<JobResponseDTO> result = jobService.searchJobs("Java", "Bangalore", "FULL_TIME", 3, 0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+    }
+
+    @Test
+    void searchJobs_invalidJobType_throwsException() {
+        assertThrows(com.capg.jobportal.Exceptions.InvalidJobTypeException.class,
+                () -> jobService.searchJobs("Java", "Bangalore", "INVALID_TYPE", 3, 0, 10));
+    }
+
+    @Test
+    void searchJobs_emptyFilters_success() {
+        List<Job> jobList = new ArrayList<>();
+        jobList.add(testJob);
+        Page<Job> jobPage = new PageImpl<>(jobList);
+        
+        when(jobRepository.searchJobs(isNull(), anyString(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(jobPage);
+
+        PagedResponse<JobResponseDTO> result = jobService.searchJobs(null, "", null, null, 0, 10);
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void searchJobs_emptyStringJobType_success() {
+        List<Job> jobList = new ArrayList<>();
+        jobList.add(testJob);
+        Page<Job> jobPage = new PageImpl<>(jobList);
+        
+        when(jobRepository.searchJobs(anyString(), anyString(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(jobPage);
+
+        PagedResponse<JobResponseDTO> result = jobService.searchJobs("Java", "Bangalore", "", null, 0, 10);
+
+        assertNotNull(result);
+    }
+
+    // ─── Update Job Failure Cases ────────────────────────────────────
+    @Test
+    void updateJob_nonRecruiter_throwsForbidden() {
+        assertThrows(ForbiddenException.class,
+                () -> jobService.updateJob(1L, testRequest, 10L, "JOB_SEEKER"));
+    }
+
+    @Test
+    void updateJob_notFound_throwsException() {
+        when(jobRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class,
+                () -> jobService.updateJob(99L, testRequest, 10L, "RECRUITER"));
+    }
+
+    // ─── Delete Job Failure Cases ────────────────────────────────────
+    @Test
+    void deleteJob_notFound_throwsException() {
+        when(jobRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class,
+                () -> jobService.deleteJob(99L, 10L, "RECRUITER"));
+    }
+
+    @Test
+    void deleteJob_notOwner_throwsForbidden() {
+        when(jobRepository.findById(1L)).thenReturn(Optional.of(testJob));
+        assertThrows(ForbiddenException.class,
+                () -> jobService.deleteJob(1L, 99L, "RECRUITER"));
+    }
+
     // ─── Admin Operations ────────────────────────────────────────────
+    @Test
+    void getAllJobsForAdmin_success() {
+        when(jobRepository.findAll()).thenReturn(Arrays.asList(testJob));
+        List<JobResponseDTO> result = jobService.getAllJobsForAdmin();
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void getAllJobsForAdmin_emptyList_success() {
+        when(jobRepository.findAll()).thenReturn(new ArrayList<>());
+        List<JobResponseDTO> result = jobService.getAllJobsForAdmin();
+        assertEquals(0, result.size());
+    }
 
     @Test
     void deleteJobByAdmin_success() {

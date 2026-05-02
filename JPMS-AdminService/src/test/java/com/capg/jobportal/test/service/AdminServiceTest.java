@@ -83,6 +83,19 @@ class AdminServiceTest {
     }
 
     @Test
+    void banUser_invalidateToken_fails_continues() {
+        doNothing().when(authServiceClient).banUser(1L);
+        doThrow(new RuntimeException("Token service down")).when(authServiceClient).invalidateToken(1L);
+        when(auditLogRepository.save(any(AuditLog.class))).thenReturn(new AuditLog());
+
+        adminService.banUser(1L, 99L);
+
+        verify(authServiceClient).banUser(1L);
+        verify(authServiceClient).invalidateToken(1L);
+        verify(auditLogRepository).save(any(AuditLog.class));
+    }
+
+    @Test
     void banUser_self_throwsException() {
         assertThrows(IllegalArgumentException.class,
                 () -> adminService.banUser(99L, 99L));

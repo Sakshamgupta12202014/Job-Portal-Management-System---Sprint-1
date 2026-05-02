@@ -1,0 +1,35 @@
+@if (totalPages() > 1) {
+  <div class="flex items-center justify-between mt-6">
+    <p class="text-sm text-gray-400">
+      Page <span class="text-white font-medium">{{ currentPage() + 1 }}</span>
+      of <span class="text-white font-medium">{{ totalPages() }}</span>
+      · <span class="text-white font-medium">{{ totalElements() }}</span> results
+    </p>
+    <div class="flex items-center gap-2">
+      <button
+        class="btn-secondary btn-sm"
+        [disabled]="currentPage() === 0"
+        (click)="pageChange.emit(currentPage() - 1)">
+        ← Prev
+      </button>
+
+      @for (p of pageNumbers(); track p) {
+        <button
+          class="w-8 h-8 rounded-lg text-xs font-semibold transition-all"
+          [ngClass]="p === currentPage()
+            ? 'bg-primary-600 text-white'
+            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'"
+          (click)="pageChange.emit(p)">
+          {{ p + 1 }}
+        </button>
+      }
+
+      <button
+        class="btn-secondary btn-sm"
+        [disabled]="currentPage() === totalPages() - 1"
+        (click)="pageChange.emit(currentPage() + 1)">
+        Next →
+      </button>
+    </div>
+  </div>
+}

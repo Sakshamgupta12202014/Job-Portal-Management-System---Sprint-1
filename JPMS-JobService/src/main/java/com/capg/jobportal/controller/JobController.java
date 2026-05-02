@@ -1,7 +1,5 @@
 package com.capg.jobportal.controller;
 
-import java.util.List;
-
 /*
  * ================================================================
  * AUTHOR: Saksham Gupta
@@ -104,11 +102,14 @@ public class JobController {
      * ================================================================ */
     @Operation(summary = "Get job by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<JobResponseDTO> getJobById(@PathVariable Long id) {
+    public ResponseEntity<JobResponseDTO> getJobById(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
 
-        logger.info("Fetching job with ID: {}", id);
+        logger.info("Fetching job with ID: {} (Requested by: {})", id, userId != null ? userId : "Public");
 
-        JobResponseDTO response = jobService.getJobById(id);
+        JobResponseDTO response = jobService.getJobById(id, userId, userRole);
 
         logger.info("Job [{}] fetched successfully", id);
 
@@ -161,11 +162,11 @@ public class JobController {
             @Parameter(description = "User Role from Gateway", required = true)
             @RequestHeader("X-User-Role") String userRole) {
 
-        logger.info("Recruiter [{}] updating job [{}]", userId, id);
+        logger.info("API request to update job [{}] with status: {}", id, dto.getStatus());
 
         JobResponseDTO response = jobService.updateJob(id, dto, userId, userRole);
 
-        logger.info("Job [{}] updated successfully", id);
+        logger.info("Job [{}] updated successfully. Returning status: {}", id, response.getStatus());
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

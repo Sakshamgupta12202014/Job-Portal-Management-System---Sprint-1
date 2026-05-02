@@ -1,0 +1,212 @@
+<div class="page-container max-w-5xl">
+
+  <!-- Header -->
+  <div class="flex items-center gap-4 mb-10">
+    <button routerLink=".." class="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white transition-all">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    <div>
+      <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Edit Profile</h1>
+      <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Update your personal and professional information</p>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden relative">
+    @if (saving()) {
+      <div class="absolute top-0 left-0 w-full h-1 bg-primary-100 dark:bg-primary-900 z-10">
+        <div class="h-full bg-primary-500 animate-loading-bar"></div>
+      </div>
+    }
+
+    <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="divide-y divide-gray-200 dark:divide-gray-800">
+
+      <!-- ── Profile Picture & Resume Section ─────────────────────────── -->
+      <div class="p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center text-violet-600 dark:text-violet-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white">Media & Documents</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- Profile Picture -->
+          <div class="flex flex-col gap-3 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50">
+            <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profile Picture</p>
+            <div class="flex items-center gap-4">
+              <!-- Avatar preview -->
+              <div class="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-gray-700">
+                @if (profilePictureUrl()) {
+                  <img [src]="profilePictureUrl()!" alt="Profile" class="w-full h-full object-cover"/>
+                } @else {
+                  <div class="w-full h-full bg-primary-600 flex items-center justify-center text-white text-xl font-bold">
+                    {{ profileForm.get('name')?.value?.[0]?.toUpperCase() || '?' }}
+                  </div>
+                }
+              </div>
+              <!-- Actions -->
+              <div class="flex flex-col gap-2">
+                <input #picInput type="file" accept="image/*" class="hidden" (change)="onPickPicture($event)"/>
+                <button type="button" (click)="picInput.click()" [disabled]="uploadingPic()"
+                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-primary-400 hover:text-primary-600 dark:hover:border-primary-500 dark:hover:text-primary-400 transition-all disabled:opacity-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {{ uploadingPic() ? 'Uploading…' : 'Change Photo' }}
+                </button>
+                @if (profilePictureUrl()) {
+                  <button type="button" (click)="removePicture()" [disabled]="removingPic()"
+                          class="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-500/20 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {{ removingPic() ? 'Removing…' : 'Remove' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Resume -->
+          <div class="flex flex-col gap-3 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50">
+            <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resume / CV</p>
+            <div class="flex items-start gap-4">
+              <!-- Resume icon -->
+              <div class="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border-2 border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <!-- Actions -->
+              <div class="flex flex-col gap-2 flex-1">
+                @if (resumeUrl()) {
+                  <a [href]="resumeUrl()!" target="_blank"
+                     class="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline truncate">
+                    View Current Resume ↗
+                  </a>
+                } @else {
+                  <p class="text-sm text-gray-400 dark:text-gray-500">No resume uploaded</p>
+                }
+                <input #resumeInput type="file" accept=".pdf,.doc,.docx" class="hidden" (change)="onPickResume($event)"/>
+                <button type="button" (click)="resumeInput.click()" [disabled]="uploadingResume()"
+                        class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 hover:border-emerald-400 hover:text-emerald-600 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition-all disabled:opacity-50">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  {{ uploadingResume() ? 'Uploading…' : (resumeUrl() ? 'Replace Resume' : 'Upload Resume') }}
+                </button>
+                @if (resumeUrl()) {
+                  <button type="button" (click)="removeResume()" [disabled]="removingResume()"
+                          class="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-500/20 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {{ removingResume() ? 'Removing…' : 'Remove' }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Personal Information ──────────────────────────────────────── -->
+      <div class="p-8 space-y-6">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white">Personal Information</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Full Name</label>
+            <input type="text" formControlName="name"
+                   class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                   placeholder="John Doe">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone Number</label>
+            <input type="text" formControlName="phone"
+                   class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                   placeholder="+1 (555) 000-0000">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Professional Details ──────────────────────────────────────── -->
+      <div class="p-8 space-y-6">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-gray-900 dark:text-white">Professional Details</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</label>
+            <input type="text" formControlName="location"
+                   class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                   placeholder="City, Country">
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Years of Experience</label>
+            <input type="number" formControlName="experienceYears"
+                   class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                   placeholder="0">
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bio</label>
+          <textarea formControlName="bio" rows="4"
+                    class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all resize-none"
+                    placeholder="Tell us about your professional journey…"></textarea>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Skills (comma separated)</label>
+          <input type="text" formControlName="skills"
+                 class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-200 placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                 placeholder="e.g. Java, Python, Angular">
+          <div class="flex flex-wrap gap-2 mt-1">
+            @for (skill of getSkillsList(); track skill) {
+              <span class="px-3 py-1 bg-primary-100 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400 text-[10px] uppercase font-black rounded-lg border border-primary-200 dark:border-primary-500/20">
+                {{ skill }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Actions ───────────────────────────────────────────────────── -->
+      <div class="flex items-center justify-end gap-4 px-8 py-6 bg-gray-50/50 dark:bg-gray-800/30">
+        <button type="button" routerLink=".."
+                class="px-6 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white font-bold text-sm transition-all">
+          Cancel
+        </button>
+        <button type="submit"
+                class="px-10 py-3 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                [disabled]="profileForm.invalid || saving()">
+          {{ saving() ? 'Saving…' : 'Save Profile' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>

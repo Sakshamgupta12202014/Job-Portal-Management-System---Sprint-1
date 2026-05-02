@@ -23,7 +23,7 @@ public class CloudinaryUtil {
     @Value("${cloudinary.api-secret}")
     private String apiSecret;
  
-    private Cloudinary getCloudinary() {
+    protected Cloudinary getCloudinary() {
         return new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,
                 "api_key", apiKey,
@@ -36,7 +36,8 @@ public class CloudinaryUtil {
  
         String uniqueFilename = UUID.randomUUID().toString() + ".pdf";
  
-        Map result = getCloudinary().uploader().upload(
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> result = getCloudinary().uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
                         "folder", "jobportal/resumes",

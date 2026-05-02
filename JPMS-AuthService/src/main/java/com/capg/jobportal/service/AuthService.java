@@ -5,16 +5,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import com.capg.jobportal.dao.UserRepository;
 import com.capg.jobportal.dto.AuthResponse;
 import com.capg.jobportal.dto.LoginRequest;
+import com.capg.jobportal.dto.PagedResponse;
 import com.capg.jobportal.dto.RegisterRequest;
+import com.capg.jobportal.dto.UpdateProfileRequest;
 import com.capg.jobportal.dto.UserProfileResponse;
 import com.capg.jobportal.entity.User;
 import com.capg.jobportal.enums.Role;
@@ -23,6 +27,9 @@ import com.capg.jobportal.exception.ResourceNotFoundException;
 import com.capg.jobportal.exception.UserAlreadyExistsException;
 import com.capg.jobportal.security.JwtUtil;
 import com.capg.jobportal.util.CloudinaryUtil;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 /*
@@ -36,28 +43,14 @@ import com.capg.jobportal.util.CloudinaryUtil;
  * ================================================================
  */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AuthService {
-
-    /*
-     * Logger instance for tracking application flow
-     */
-    private static final Logger logger = LogManager.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final CloudinaryUtil cloudinaryUtil;
-
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil,
-                       CloudinaryUtil cloudinaryUtil) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.cloudinaryUtil = cloudinaryUtil;
-    }
-    
 
     /* ================================================================
      * METHOD: register
@@ -67,15 +60,15 @@ public class AuthService {
      * ================================================================ */
     public AuthResponse register(RegisterRequest request) {
 
-        logger.info("Register request for email: {}", request.getEmail());
+        log.info("Register request for email: {}", request.getEmail());
 
         if (request.getRole() == Role.ADMIN) {
-            logger.warn("Admin registration blocked");
+            log.warn("Admin registration blocked");
             throw new IllegalArgumentException("Admin registration is not allowed");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Email already exists: {}", request.getEmail());
+            log.warn("Email already exists: {}", request.getEmail());
             throw new UserAlreadyExistsException("Email already in use");
         }
 
@@ -86,11 +79,19 @@ public class AuthService {
         user.setRole(request.getRole());
         user.setPhone(request.getPhone());
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        logger.info("User registered successfully: {}", request.getEmail());
+        log.info("User registered successfully: {}", request.getEmail());
 
-        return new AuthResponse("Registration successful. Please login.");
+        // Automatically generate tokens to log the user in immediately
+        String accessToken = jwtUtil.generateAccessToken(savedUser.getId(), savedUser.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken();
+
+        savedUser.setRefreshToken(refreshToken);
+        userRepository.save(savedUser);
+
+        return new AuthResponse(accessToken, refreshToken, savedUser.getRole().name(),
+                savedUser.getId(), savedUser.getName(), savedUser.getEmail());
     }
     
 
@@ -101,24 +102,24 @@ public class AuthService {
      * tokens if credentials are valid and account is active.
      * ================================================================ */
     public AuthResponse login(LoginRequest request) {
-    	logger.info("CHECK LOGGER FORMAT");
+    	log.info("CHECK LOGGER FORMAT");
 
-        logger.info("Login attempt for email: {}", request.getEmail());
+        log.info("Login attempt for email: {}", request.getEmail());
 
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
         if (user == null) {
-            logger.warn("User not found: {}", request.getEmail());
+            log.warn("User not found: {}", request.getEmail());
             throw new IllegalArgumentException("Invalid credentials");
         }
 
         if (user.getStatus() == UserStatus.BANNED) {
-            logger.warn("Banned user login attempt: {}", request.getEmail());
+            log.warn("Banned user login attempt: {}", request.getEmail());
             throw new IllegalArgumentException("Account suspended");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            logger.warn("Invalid password attempt for: {}", request.getEmail());
+            log.warn("Invalid password attempt for: {}", request.getEmail());
             throw new IllegalArgumentException("Invalid credentials");
         }
 
@@ -128,7 +129,7 @@ public class AuthService {
         user.setRefreshToken(refreshToken);
         userRepository.save(user);
 
-        logger.info("Login successful for user ID: {}", user.getId());
+        log.info("Login successful for user ID: {}", user.getId());
 
         return new AuthResponse(accessToken, refreshToken, user.getRole().name(),
                 user.getId(), user.getName(), user.getEmail());
@@ -142,17 +143,17 @@ public class AuthService {
      * ================================================================ */
     public AuthResponse refresh(String refreshToken) {
 
-        logger.debug("Refreshing token");
+        log.debug("Refreshing token");
 
         User user = userRepository.findByRefreshToken(refreshToken).orElse(null);
 
         if (user == null) {
-            logger.warn("Invalid refresh token");
+            log.warn("Invalid refresh token");
             throw new ResourceNotFoundException("Invalid or expired refresh token");
         }
 
         if (user.getStatus() == UserStatus.BANNED) {
-            logger.warn("Banned user token refresh attempt: {}", user.getId());
+            log.warn("Banned user token refresh attempt: {}", user.getId());
             throw new IllegalArgumentException("Account suspended");
         }
 
@@ -162,7 +163,7 @@ public class AuthService {
         user.setRefreshToken(newRefreshToken);
         userRepository.save(user);
 
-        logger.info("Token refreshed for user ID: {}", user.getId());
+        log.info("Token refreshed for user ID: {}", user.getId());
 
         return new AuthResponse(newAccessToken, newRefreshToken, user.getRole().name(),
                 user.getId(), user.getName(), user.getEmail());
@@ -176,19 +177,19 @@ public class AuthService {
      * ================================================================ */
     public void logout(String refreshToken) {
 
-        logger.debug("Logout request");
+        log.debug("Logout request");
 
         User user = userRepository.findByRefreshToken(refreshToken).orElse(null);
 
         if (user == null) {
-            logger.warn("Invalid logout token");
+            log.warn("Invalid logout token");
             throw new ResourceNotFoundException("Invalid refresh token");
         }
 
         user.setRefreshToken(null);
         userRepository.save(user);
 
-        logger.info("User logged out: {}", user.getId());
+        log.info("User logged out: {}", user.getId());
     }
 
     
@@ -199,11 +200,11 @@ public class AuthService {
      * ================================================================ */
     public String updateProfilePicture(Long userId, MultipartFile picture) throws IOException {
 
-        logger.info("Updating profile picture for user: {}", userId);
+        log.info("Updating profile picture for user: {}", userId);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            logger.warn("User not found: {}", userId);
+            log.warn("User not found: {}", userId);
             throw new ResourceNotFoundException("User not found");
         }
 
@@ -211,11 +212,59 @@ public class AuthService {
         user.setProfilePictureUrl(url);
         userRepository.save(user);
 
-        logger.info("Profile picture updated for user: {}", userId);
+        log.info("Profile picture updated for user: {}", userId);
 
         return url;
     }
     
+
+    /* ================================================================
+     * METHOD: removeProfilePicture
+     * DESCRIPTION:
+     * Deletes the user's profile picture from Cloudinary and clears DB.
+     * ================================================================ */
+    public void removeProfilePicture(Long userId) throws IOException {
+
+        log.info("Removing profile picture for user: {}", userId);
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
+        if (user.getProfilePictureUrl() != null) {
+            cloudinaryUtil.deleteByUrl(user.getProfilePictureUrl(), "image");
+            user.setProfilePictureUrl(null);
+            userRepository.save(user);
+        }
+
+        log.info("Profile picture removed for user: {}", userId);
+    }
+
+
+    /* ================================================================
+     * METHOD: removeResume
+     * DESCRIPTION:
+     * Deletes the user's resume from Cloudinary and clears DB.
+     * ================================================================ */
+    public void removeResume(Long userId) throws IOException {
+
+        log.info("Removing resume for user: {}", userId);
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found");
+        }
+
+        if (user.getResumeUrl() != null) {
+            cloudinaryUtil.deleteByUrl(user.getResumeUrl(), "raw");
+            user.setResumeUrl(null);
+            userRepository.save(user);
+        }
+
+        log.info("Resume removed for user: {}", userId);
+    }
+
 
     /* ================================================================
      * METHOD: updateProfileResume
@@ -224,11 +273,11 @@ public class AuthService {
      * ================================================================ */
     public String updateProfileResume(Long userId, MultipartFile resume) throws IOException {
 
-        logger.info("Updating resume for user: {}", userId);
+        log.info("Updating resume for user: {}", userId);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            logger.warn("User not found: {}", userId);
+            log.warn("User not found: {}", userId);
             throw new ResourceNotFoundException("User not found");
         }
 
@@ -236,7 +285,7 @@ public class AuthService {
         user.setResumeUrl(url);
         userRepository.save(user);
 
-        logger.info("Resume updated for user: {}", userId);
+        log.info("Resume updated for user: {}", userId);
 
         return url;
     }
@@ -249,13 +298,43 @@ public class AuthService {
      * ================================================================ */
     public UserProfileResponse getProfile(Long userId) {
 
-        logger.debug("Fetching profile for user: {}", userId);
+        log.debug("Fetching profile for user: {}", userId);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            logger.warn("User not found: {}", userId);
+            log.warn("User not found: {}", userId);
             throw new ResourceNotFoundException("User not found");
         }
+
+        return UserProfileResponse.fromEntity(user);
+    }
+    
+
+    /* ================================================================
+     * METHOD: updateProfile
+     * DESCRIPTION:
+     * Updates user personal details such as name, bio, skills, etc.
+     * ================================================================ */
+    public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
+
+        log.info("Update profile request for user: {}", userId);
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            log.warn("User not found: {}", userId);
+            throw new ResourceNotFoundException("User not found");
+        }
+
+        if (request.getName() != null) user.setName(request.getName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getBio() != null) user.setBio(request.getBio());
+        if (request.getLocation() != null) user.setLocation(request.getLocation());
+        if (request.getSkills() != null) user.setSkills(request.getSkills());
+        if (request.getExperienceYears() != null) user.setExperienceYears(request.getExperienceYears());
+
+        userRepository.save(user);
+
+        log.info("Profile updated successfully for user: {}", userId);
 
         return UserProfileResponse.fromEntity(user);
     }
@@ -267,19 +346,32 @@ public class AuthService {
      * Retrieves all users for admin/internal use.
      * ================================================================ */
     public List<UserProfileResponse> getAllUsers() {
-
-        logger.debug("Fetching all users");
-
+        log.debug("Fetching all users");
         List<User> users = userRepository.findAll();
         List<UserProfileResponse> result = new ArrayList<>();
-
         for (User user : users) {
             result.add(UserProfileResponse.fromEntity(user));
         }
-
-        logger.info("Total users fetched: {}", result.size());
-
+        log.info("Total users fetched: {}", result.size());
         return result;
+    }
+
+    public PagedResponse<UserProfileResponse> getAllUsersPaged(int page, int size) {
+        log.debug("Fetching paginated users — page: {}, size: {}", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> userPage = userRepository.findAll(pageable);
+
+        List<UserProfileResponse> content = userPage.getContent().stream()
+            .map(UserProfileResponse::fromEntity)
+            .collect(Collectors.toList());
+
+        return new PagedResponse<>(
+            content,
+            userPage.getNumber(),
+            userPage.getTotalPages(),
+            userPage.getTotalElements(),
+            userPage.isLast()
+        );
     }
     
 
@@ -290,17 +382,17 @@ public class AuthService {
      * ================================================================ */
     public void deleteUser(Long userId) {
 
-        logger.info("Deleting user: {}", userId);
+        log.info("Deleting user: {}", userId);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            logger.warn("User not found: {}", userId);
+            log.warn("User not found: {}", userId);
             throw new ResourceNotFoundException("User not found");
         }
 
         userRepository.delete(user);
 
-        logger.info("User deleted: {}", userId);
+        log.info("User deleted: {}", userId);
     }
 
     
@@ -311,11 +403,11 @@ public class AuthService {
      * ================================================================ */
     public void updateUserStatus(Long userId, String status) {
 
-        logger.info("Updating status for user {} to {}", userId, status);
+        log.info("Updating status for user {} to {}", userId, status);
 
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
-            logger.warn("User not found: {}", userId);
+            log.warn("User not found: {}", userId);
             throw new ResourceNotFoundException("User not found");
         }
 
@@ -324,7 +416,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        logger.info("User status updated successfully");
+        log.info("User status updated successfully");
     }
 
     
@@ -335,16 +427,16 @@ public class AuthService {
      * ================================================================ */
     public void invalidateTokenByUserId(Long userId) {
 
-        logger.info("Invalidating token for user: {}", userId);
+        log.info("Invalidating token for user: {}", userId);
 
         User user = userRepository.findById(userId).orElse(null);
 
         if (user != null) {
             user.setRefreshToken(null);
             userRepository.save(user);
-            logger.info("Token invalidated");
+            log.info("Token invalidated");
         } else {
-            logger.warn("User not found for token invalidation");
+            log.warn("User not found for token invalidation");
         }
     }
     

@@ -1,0 +1,102 @@
+<div class="page-container animate-fade-in">
+  <!-- Back Button -->
+  <button (click)="goBack()" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-white mb-6 flex items-center gap-1 transition-colors group">
+    <span class="group-hover:-translate-x-1 transition-transform">←</span> Back
+  </button>
+
+  <!-- Header Section -->
+  <div class="mb-10">
+    <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 mb-4 border border-primary-100 dark:border-primary-800">
+      History & Tracking
+    </span>
+    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">My Applications</h1>
+    <p class="text-gray-500 dark:text-gray-400 text-lg mb-2 font-medium">View and track the status of all your job applications.</p>
+    <div class="text-[11px] font-bold text-gray-400 dark:text-gray-500 tracking-[0.1em] uppercase">
+      {{ applications().length }} {{ applications().length === 1 ? 'APPLICATION' : 'APPLICATIONS' }} TOTAL
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="space-y-4">
+      @for (_ of [1,2,3]; track $index) {
+        <div class="h-32 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse border border-gray-200 dark:border-gray-700"></div>
+      }
+    </div>
+  } @else if (applications().length === 0) {
+    <div class="bg-white dark:bg-gray-900 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 p-16 text-center shadow-sm">
+      <div class="w-20 h-20 bg-gray-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl">
+        📭
+      </div>
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">No applications yet</h2>
+      <p class="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-8">Start your journey today by applying to jobs that match your skills.</p>
+      <a routerLink="/jobs" class="btn-primary px-8 py-3 rounded-xl shadow-lg shadow-primary-500/25">Browse Jobs</a>
+    </div>
+  } @else {
+    <div class="grid gap-6">
+      @for (app of applications(); track app.id) {
+        <div class="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm hover:shadow-xl hover:shadow-gray-200/40 dark:hover:shadow-none hover:scale-[1.01] transition-all duration-300 flex items-center justify-between">
+          
+          <div class="flex items-center gap-6">
+            <!-- Company Logo Placeholder -->
+            <div class="w-14 h-14 rounded-xl bg-primary-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-primary-600/20">
+              {{ (app.companyName || 'C').charAt(0) }}
+            </div>
+
+            <!-- Job Info -->
+            <div class="space-y-3">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white leading-tight group-hover:text-primary-600 transition-colors">
+                  {{ app.jobTitle }}
+                </h3>
+                <p class="text-gray-500 dark:text-gray-400 font-medium">{{ app.companyName }}</p>
+              </div>
+
+              <!-- Detail Chips -->
+              <div class="flex flex-wrap gap-2">
+                <!-- Location -->
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-bold border border-gray-200 dark:border-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {{ app.location | uppercase }}
+                </div>
+
+                <!-- Date -->
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-bold border border-gray-200 dark:border-gray-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ app.appliedAt | date:'MMM d, y' | uppercase }}
+                </div>
+
+                <!-- Resume Link -->
+                @if (app.resumeUrl) {
+                  <a [href]="app.resumeUrl" target="_blank" 
+                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-xs font-bold border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    VIEW RESUME
+                  </a>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Section -->
+          <div class="flex flex-col items-end gap-3">
+             <app-status-badge [status]="app.status" />
+             <a [routerLink]="['/seeker/applications', app.id]" 
+                class="text-xs font-bold text-gray-400 hover:text-primary-600 dark:hover:text-white transition-colors flex items-center gap-1 group/link">
+                View Details 
+                <span class="group-hover/link:translate-x-1 transition-transform">→</span>
+             </a>
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+</div>

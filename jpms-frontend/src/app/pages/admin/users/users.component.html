@@ -1,0 +1,82 @@
+<div class="page-container">
+  <div class="mb-8 flex justify-between items-center">
+    <div>
+      <h1 class="page-title">Manage Users</h1>
+      <p class="page-subtitle">View and moderate all users on the platform</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl flex items-center gap-3">
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Total Users</span>
+        <span class="text-sm font-black text-gray-900 dark:text-white leading-none">{{ totalItems() }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="space-y-3">
+      @for (_ of [1,2,3,4]; track $index) {
+        <div class="card h-16 animate-pulse bg-gray-100 dark:bg-gray-800/50"></div>
+      }
+    </div>
+  } @else {
+    <div class="table-wrapper animate-fade-in shadow-sm border border-gray-200 dark:border-gray-800">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="bg-gray-50 dark:bg-gray-800/50">ID</th>
+            <th class="bg-gray-50 dark:bg-gray-800/50">Name</th>
+            <th class="bg-gray-50 dark:bg-gray-800/50">Email</th>
+            <th class="bg-gray-50 dark:bg-gray-800/50">Role</th>
+            <th class="bg-gray-50 dark:bg-gray-800/50">Status</th>
+            <th class="bg-gray-50 dark:bg-gray-800/50">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+              <td class="text-gray-400 font-mono text-xs">#{{ user.id }}</td>
+              <td class="text-gray-900 dark:text-white font-medium">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-primary-600/10 text-primary-600 flex items-center justify-center text-xs font-black uppercase">
+                    {{ user.name[0] }}
+                  </div>
+                  {{ user.name }}
+                </div>
+              </td>
+              <td class="text-gray-600 dark:text-gray-400 text-sm">{{ user.email }}</td>
+              <td>
+                <app-user-role-badge [role]="user.role" />
+              </td>
+              <td>
+                <app-user-status-badge [status]="user.status" />
+              </td>
+              <td>
+                <div class="flex gap-3">
+                  @if (user.role !== 'ADMIN') {
+                    @if (user.status === 'ACTIVE') {
+                      <button (click)="handleUserAction('BAN', user)" class="text-yellow-600 dark:text-yellow-400 font-bold hover:underline text-xs">Ban</button>
+                    } @else {
+                      <button (click)="handleUserAction('UNBAN', user)" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline text-xs">Unban</button>
+                    }
+                    <button (click)="handleUserAction('DELETE', user)" class="text-red-600 dark:text-red-400 font-bold hover:underline text-xs">Delete</button>
+                  } @else {
+                    <span class="text-gray-400 text-[10px] font-black uppercase tracking-widest italic">Protected</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8">
+      <app-pagination 
+        [currentPage]="currentPage()"
+        [totalPages]="totalPages()"
+        [totalElements]="totalItems()"
+        (pageChange)="setPage($event)" />
+    </div>
+  }
+</div>

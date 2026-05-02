@@ -24,7 +24,7 @@ public class CloudinaryUtil {
     private String apiSecret;
     
     
-    private Cloudinary getCloudinary() {
+    protected Cloudinary getCloudinary() {
     	return new Cloudinary(ObjectUtils.asMap(
     			"cloud_name", cloudName,
                 "api_key", apiKey,
@@ -36,7 +36,8 @@ public class CloudinaryUtil {
     public String uploadProfilePicture(MultipartFile file) throws IOException {
     	validateImage(file);
     	
-    	Map result = getCloudinary().uploader().upload(
+    	@SuppressWarnings("unchecked")
+    	Map<String, Object> result = getCloudinary().uploader().upload(
     			file.getBytes(), 
     			ObjectUtils.asMap(
 	                "folder", "jobportal/profile-pictures",
@@ -52,7 +53,8 @@ public class CloudinaryUtil {
 //        String originalFilename = file.getOriginalFilename();
         String uniqueFilename = UUID.randomUUID().toString() + ".pdf";
 
-        Map result = getCloudinary().uploader().upload(
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = getCloudinary().uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
                 		"folder", "jobportal/resumes",
@@ -64,7 +66,33 @@ public class CloudinaryUtil {
         );
         return result.get("secure_url").toString();
     }
-    
+
+
+    /**
+     * Deletes a Cloudinary asset identified by its secure URL.
+     * Extracts the public_id from the URL and calls the destroy API.
+     *
+     * @param url        the Cloudinary secure URL
+     * @param resourceType "image" or "raw"
+     */
+    public void deleteByUrl(String url, String resourceType) throws IOException {
+        if (url == null || url.isBlank()) return;
+
+        // Extract public_id: everything between the upload version segment and the file extension
+        // e.g. https://res.cloudinary.com/<cloud>/image/upload/v1234/jobportal/profile-pictures/abc.jpg
+        //  => public_id = jobportal/profile-pictures/abc
+        String[] parts = url.split("/upload/");
+        if (parts.length < 2) return;
+        String afterUpload = parts[1]; // e.g. v1234/jobportal/profile-pictures/abc.jpg
+        // strip version prefix (vXXXX/)
+        String withoutVersion = afterUpload.replaceFirst("^v\\d+/", "");
+        // strip file extension
+        int dotIndex = withoutVersion.lastIndexOf('.');
+        String publicId = dotIndex >= 0 ? withoutVersion.substring(0, dotIndex) : withoutVersion;
+
+        getCloudinary().uploader().destroy(publicId, ObjectUtils.asMap("resource_type", resourceType));
+    }
+
     
     private void validateImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {

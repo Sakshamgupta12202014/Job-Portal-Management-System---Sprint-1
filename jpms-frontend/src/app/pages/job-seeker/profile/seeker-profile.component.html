@@ -1,0 +1,121 @@
+<div class="page-container max-w-3xl">
+  <h1 class="page-title mb-8">My Profile</h1>
+
+  @if (loading()) {
+    <div class="card animate-pulse space-y-4">
+      <div class="h-20 w-20 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
+      <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/3"></div>
+      <div class="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
+    </div>
+  } @else if (profile()) {
+    <div class="space-y-6 animate-fade-in">
+      <!-- Profile Card -->
+      <div class="card">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-6">
+          <!-- Avatar -->
+          <div class="relative">
+            @if (profile()!.profilePictureUrl) {
+              <img [src]="profile()!.profilePictureUrl" alt="avatar"
+                   class="w-20 h-20 rounded-2xl object-cover border-2 border-gray-700"/>
+            } @else {
+              <div class="w-20 h-20 rounded-2xl bg-primary-700/30 flex items-center justify-center
+                          text-2xl font-bold text-primary-400 border-2 border-primary-700/40">
+                {{ profile()!.name[0].toUpperCase() }}
+              </div>
+            }
+          </div>
+          <div class="flex-1">
+            <div class="flex justify-between items-start">
+              <div>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ profile()!.name }}</h2>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">{{ profile()!.email }}</p>
+              </div>
+              <button routerLink="../edit-profile" class="btn-primary py-1.5 px-4 text-sm">
+                Edit Profile
+              </button>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <span class="badge-blue">{{ profile()!.role }}</span>
+              <span [ngClass]="profile()!.status === 'ACTIVE' ? 'badge-green' : 'badge-red'">
+                {{ profile()!.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio -->
+        @if (profile()!.bio) {
+          <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
+            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider font-bold mb-2">About Me</p>
+            <p class="text-gray-700 dark:text-gray-200 text-sm leading-relaxed">{{ profile()!.bio }}</p>
+          </div>
+        }
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm pt-5 border-t border-gray-200 dark:border-gray-800">
+          <div>
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-1">Phone</p>
+            <p class="text-gray-800 dark:text-gray-200 font-medium">{{ profile()!.phone || '—' }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-1">Location</p>
+            <p class="text-gray-800 dark:text-gray-200 font-medium">{{ profile()!.location || '—' }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-1">Experience</p>
+            <p class="text-gray-800 dark:text-gray-200 font-medium">{{ profile()!.experienceYears ? profile()!.experienceYears + ' Years' : '—' }}</p>
+          </div>
+          <div>
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-1">Email</p>
+            <p class="text-gray-800 dark:text-gray-200 font-medium">{{ profile()!.email }}</p>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        @if (profile()!.skills) {
+          <div class="mt-6 pt-5 border-t border-gray-200 dark:border-gray-800">
+            <p class="text-gray-500 dark:text-gray-400 text-xs mb-2 uppercase tracking-wider font-bold">Skills</p>
+            <div class="flex flex-wrap gap-2">
+              @for (skill of profile()!.skills!.split(','); track skill) {
+                <span class="px-3 py-1 bg-primary-100 dark:bg-primary-500/10 text-primary-700 dark:text-primary-400 text-xs rounded-full border border-primary-200 dark:border-primary-500/20">
+                  {{ skill.trim() }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Upload Profile Picture -->
+      <div class="card">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Profile Picture</h3>
+        <div class="flex items-center gap-4">
+          <input #picInput type="file" accept="image/*" class="hidden"
+                 (change)="uploadPicture($event)"/>
+          <button (click)="picInput.click()" class="btn-secondary" [disabled]="uploadingPic()">
+            {{ uploadingPic() ? 'Uploading...' : '📷 Change Photo' }}
+          </button>
+          @if (profile()!.profilePictureUrl) {
+            <a [href]="profile()!.profilePictureUrl" target="_blank"
+               class="text-sm text-primary-400 hover:underline">View current</a>
+          }
+        </div>
+      </div>
+
+      <!-- Upload Resume -->
+      <div class="card">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Resume</h3>
+        <div class="flex items-center gap-4">
+          <input #resumeInput type="file" accept=".pdf,.doc,.docx" class="hidden"
+                 (change)="uploadResume($event)"/>
+          <button (click)="resumeInput.click()" class="btn-secondary" [disabled]="uploadingResume()">
+            {{ uploadingResume() ? 'Uploading...' : '📄 Upload Resume' }}
+          </button>
+          @if (profile()!.resumeUrl) {
+            <a [href]="profile()!.resumeUrl" target="_blank"
+               class="text-sm text-primary-400 hover:underline">View current resume</a>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

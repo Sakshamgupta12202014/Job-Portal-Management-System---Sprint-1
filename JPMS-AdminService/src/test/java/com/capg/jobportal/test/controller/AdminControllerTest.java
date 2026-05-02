@@ -1,6 +1,5 @@
 package com.capg.jobportal.test.controller;
 
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -89,6 +88,19 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.message").value("User banned successfully"));
     }
 
+    @Test
+    void unbanUser_admin_returns200() throws Exception {
+        doNothing().when(adminService).unbanUser(1L, 99L);
+
+        mockMvc.perform(put("/api/admin/users/1/unban")
+                .with(csrf())
+                .with(SecurityMockMvcRequestPostProcessors.anonymous())
+                .header("X-User-Id", "99")
+                .header("X-User-Role", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User unbanned successfully"));
+    }
+
     // ─── Job Endpoints ───────────────────────────────────────────────
 
     @Test
@@ -99,6 +111,19 @@ class AdminControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.anonymous())
                 .header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void deleteJob_admin_returns200() throws Exception {
+        doNothing().when(adminService).deleteJob(1L, 99L);
+
+        mockMvc.perform(delete("/api/admin/jobs/1")
+                .with(csrf())
+                .with(SecurityMockMvcRequestPostProcessors.anonymous())
+                .header("X-User-Id", "99")
+                .header("X-User-Role", "ADMIN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Job deleted successfully"));
     }
 
     // ─── Report Endpoint ─────────────────────────────────────────────
@@ -130,5 +155,22 @@ class AdminControllerTest {
                 .header("X-User-Role", "ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].action").value("BAN_USER"));
+    }
+
+    @Test
+    void access_denied_when_role_null() throws Exception {
+        mockMvc.perform(get("/api/admin/users")
+                .with(SecurityMockMvcRequestPostProcessors.anonymous()))
+                .andExpect(status().isBadRequest()); // Missing header returns 400 usually, but assertAdmin handles null
+    }
+
+    @Test
+    void assertAdmin_roleNull_returnsForbidden() throws Exception {
+        // This simulates if the header is present but null in some cases, 
+        // though Spring usually handles missing headers before this.
+        mockMvc.perform(get("/api/admin/users")
+                .with(SecurityMockMvcRequestPostProcessors.anonymous())
+                .header("X-User-Role", ""))
+                .andExpect(status().isForbidden());
     }
 }

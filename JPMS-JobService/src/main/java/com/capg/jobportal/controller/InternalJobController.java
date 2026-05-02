@@ -56,14 +56,19 @@ public class InternalJobController {
      * ================================================================ */
     @GetMapping("/jobs/all")
     public ResponseEntity<List<JobResponseDTO>> getAllJobsForAdmin() {
-
         logger.info("Internal API → Admin fetching all jobs");
-
         List<JobResponseDTO> jobs = jobService.getAllJobsForAdmin();
-
         logger.info("Returned {} jobs", jobs.size());
-
         return new ResponseEntity<>(jobs, HttpStatus.OK);
+    }
+
+    @GetMapping("/jobs/all/paged")
+    public ResponseEntity<com.capg.jobportal.dto.PagedResponse<JobResponseDTO>> getAllJobsForAdminPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String company) {
+        logger.info("Internal API → Admin fetching paginated jobs [company={}, page={}, size={}]", company, page, size);
+        return ResponseEntity.ok(jobService.getAllJobsForAdmin(page, size, company));
     }
 
     

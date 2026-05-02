@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.capg.jobportal.dto.AuthResponse;
 import com.capg.jobportal.dto.LoginRequest;
 import com.capg.jobportal.dto.RegisterRequest;
+import com.capg.jobportal.dto.UpdateProfileRequest;
 import com.capg.jobportal.dto.UserProfileResponse;
 import com.capg.jobportal.service.AuthService;
 
@@ -184,6 +185,44 @@ public class AuthController {
     }
 
     /* ================================================================
+     * METHOD: removeProfilePicture
+     * DESCRIPTION:
+     * Deletes the user's profile picture from Cloudinary and DB.
+     * ================================================================ */
+    @Operation(summary = "Remove profile picture")
+    @DeleteMapping("/profile/picture")
+    public ResponseEntity<Void> removeProfilePicture(
+
+            @Parameter(description = "User ID from Gateway", required = true)
+            @RequestHeader("X-User-Id") Long userId
+    ) throws IOException {
+
+        logger.info("User [{}] removing profile picture", userId);
+        authService.removeProfilePicture(userId);
+        logger.info("Profile picture removed for user [{}]", userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /* ================================================================
+     * METHOD: removeResume
+     * DESCRIPTION:
+     * Deletes the user's resume from Cloudinary and DB.
+     * ================================================================ */
+    @Operation(summary = "Remove resume")
+    @DeleteMapping("/profile/resume")
+    public ResponseEntity<Void> removeResume(
+
+            @Parameter(description = "User ID from Gateway", required = true)
+            @RequestHeader("X-User-Id") Long userId
+    ) throws IOException {
+
+        logger.info("User [{}] removing resume", userId);
+        authService.removeResume(userId);
+        logger.info("Resume removed for user [{}]", userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /* ================================================================
      * METHOD: getProfile
      * DESCRIPTION:
      * Fetches profile details of the logged-in user.
@@ -204,4 +243,13 @@ public class AuthController {
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-}
+
+    @Operation(summary = "Update user profile")
+    @PutMapping("/profile")
+    public ResponseEntity<UserProfileResponse> updateProfile(
+            @RequestBody UpdateProfileRequest request,
+            @RequestHeader("X-User-Id") Long userId) {
+        UserProfileResponse response = authService.updateProfile(userId, request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+}
